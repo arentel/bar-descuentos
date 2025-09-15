@@ -302,22 +302,20 @@ const spinWheel = async () => {
   isSpinning.value = true;
 
   try {
-    // 1. PRIMERO: Seleccionar el premio usando la lógica de probabilidades
+    // 1. Seleccionar el premio usando la lógica de probabilidades
     const wonPrize = GameLogic.selectRandomPrize();
     console.log('🎁 Premio seleccionado:', wonPrize);
     
-    // 2. SEGUNDO: Generar el código de descuento
+    // 2. Generar el código de descuento
     const discountCode = GameLogic.generateDiscountCode(wonPrize);
     console.log('💳 Código generado:', discountCode);
     
-    // 3. TERCERO: Encontrar la sección EXACTA en la ruleta
+    // 3. Encontrar la sección EXACTA en la ruleta
     let targetSection = wheelSections.find(section => {
-      // Buscar por ID y descuento para mayor precisión
       return section.id === wonPrize.id && section.discount === wonPrize.discount;
     });
     
     if (!targetSection) {
-      // Si no encuentra por ID, buscar por descuento como fallback
       targetSection = wheelSections.find(section => 
         section.discount === wonPrize.discount
       );
@@ -337,39 +335,54 @@ const spinWheel = async () => {
       premio: wonPrize
     });
     
-    // 4. CUARTO: Verificar que la sección coincide con el premio
-    if (targetSection.discount !== wonPrize.discount) {
-      console.error('❌ Desajuste entre sección y premio:', {
-        seccionDescuento: targetSection.discount,
-        premioDescuento: wonPrize.discount
-      });
-      throw new Error('Desajuste entre sección visual y premio');
-    }
+    // 4. CÁLCULO CORREGIDO de la rotación
+    // La flecha apunta hacia arriba (0°)
+    // Las secciones empiezan desde la posición 0 y van en sentido horario
+    // Necesitamos que la flecha apunte al centro de la sección ganadora
     
-    // 5. QUINTO: Calcular la rotación exacta para que caiga en la sección correcta
-    const targetAngle = targetIndex * sectionAngle + (sectionAngle / 2);
-    const extraSpins = 5 + Math.random() * 3; // Entre 5 y 8 vueltas
-    const totalRotation = (extraSpins * 360) + (360 - targetAngle);
+    const extraSpins = 5 + Math.random() * 3; // Entre 5 y 8 vueltas completas
     
-    console.log('🔄 Calculando rotación:', {
+    // Ángulo donde empieza la sección objetivo
+    const sectionStartAngle = targetIndex * sectionAngle;
+    
+    // Queremos apuntar al centro de la sección
+    const sectionCenterAngle = sectionStartAngle + (sectionAngle / 2);
+    
+    // Para que la flecha (que apunta a 0°) apunte al centro de la sección,
+    // necesitamos rotar la ruleta para que ese ángulo quede en 0°
+    // Como la ruleta gira en sentido horario, restamos el ángulo objetivo
+    const targetRotation = 360 - sectionCenterAngle;
+    
+    // Rotación total: vueltas extra + rotación objetivo
+    const totalRotation = (extraSpins * 360) + targetRotation;
+    
+    console.log('🔄 Cálculo detallado:', {
       targetIndex,
-      targetAngle,
+      sectionStartAngle,
+      sectionCenterAngle,
+      targetRotation,
       totalRotation,
-      sectionAngle
+      extraSpins
     });
     
-    // 6. SEXTO: Aplicar la rotación
+    // 5. Aplicar la rotación
     currentRotation.value += totalRotation;
     
-    // 7. SÉPTIMO: Esperar a que termine la animación y luego guardar/mostrar resultado
+    // 6. Esperar a que termine la animación y luego guardar/mostrar resultado
     setTimeout(() => {
       console.log('✅ Animación terminada');
       
-      // VERIFICACIÓN FINAL: Confirmar que todo coincide
+      // Verificación final: calcular dónde apunta la flecha
+      const finalAngle = currentRotation.value % 360;
+      const normalizedAngle = (360 - finalAngle) % 360; // Invertir porque la ruleta gira al revés
+      const pointedSectionIndex = Math.floor(normalizedAngle / sectionAngle);
+      
       console.log('🔍 Verificación final:', {
-        premioOriginal: wonPrize,
-        seccionObjetivo: targetSection,
-        codigoGenerado: discountCode
+        finalAngle,
+        normalizedAngle,
+        pointedSectionIndex,
+        targetIndex,
+        coincide: pointedSectionIndex === targetIndex
       });
       
       // GUARDAR el resultado en localStorage
