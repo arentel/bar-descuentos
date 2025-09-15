@@ -12,24 +12,42 @@
         <!-- Estado: Puede jugar -->
         <div v-if="canPlay && !gameResult" class="play-state">
           <div class="wheel-container">
-            <!-- La ruleta elegante -->
-            <div 
-              class="game-wheel" 
-              :class="{ 'spinning': isSpinning }"
-              :style="{ transform: `rotate(${currentRotation}deg)` }"
-            >
-              <!-- Secciones de la ruleta (solo colores) -->
-              <div 
-                v-for="(section, index) in wheelSections" 
-                :key="section.id"
-                class="wheel-section"
-                :style="{ 
-                  transform: `rotate(${index * sectionAngle}deg)`,
-                  background: section.colors.gradient
-                }"
+            <!-- La ruleta con SVG -->
+            <div class="wheel-wrapper">
+              <svg 
+                class="game-wheel" 
+                :class="{ 'spinning': isSpinning }"
+                :style="{ transform: `rotate(${currentRotation}deg)` }"
+                width="350" 
+                height="350" 
+                viewBox="0 0 350 350"
               >
-                <!-- Efecto de brillo -->
-                <div class="section-shine"></div>
+                <!-- Secciones de la ruleta -->
+                <g v-for="(section, index) in wheelSections" :key="section.id">
+                  <defs>
+                    <linearGradient :id="`gradient-${section.id}`" x1="0%" y1="0%" x2="100%" y2="100%">
+                      <stop offset="0%" :stop-color="section.colors.primary" />
+                      <stop offset="100%" :stop-color="section.colors.secondary" />
+                    </linearGradient>
+                  </defs>
+                  <path
+                    :d="getSectionPath(index)"
+                    :fill="`url(#gradient-${section.id})`"
+                    stroke="white"
+                    stroke-width="2"
+                    class="wheel-section-svg"
+                  />
+                </g>
+                
+                <!-- Círculo del centro -->
+                <circle cx="175" cy="175" r="50" fill="#667eea" stroke="white" stroke-width="4" class="center-circle"/>
+              </svg>
+              
+              <!-- Icono del centro -->
+              <div class="wheel-center">
+                <div class="center-button">
+                  <ion-icon :icon="giftOutline" class="center-icon"></ion-icon>
+                </div>
               </div>
             </div>
             
@@ -39,24 +57,6 @@
                 <div class="arrow-body"></div>
                 <div class="arrow-tip"></div>
               </div>
-            </div>
-            
-            <!-- Centro de la ruleta elegante -->
-            <div class="wheel-center">
-              <div class="center-button">
-                <div class="center-glow"></div>
-                <ion-icon :icon="giftOutline" class="center-icon"></ion-icon>
-              </div>
-            </div>
-
-            <!-- Marcadores de división -->
-            <div class="wheel-markers">
-              <div 
-                v-for="n in wheelSections.length" 
-                :key="n"
-                class="section-marker"
-                :style="{ transform: `rotate(${(n-1) * sectionAngle}deg)` }"
-              ></div>
             </div>
           </div>
 
@@ -71,7 +71,7 @@
               >
                 <div 
                   class="legend-color"
-                  :style="{ background: section.colors.gradient }"
+                  :style="{ background: `linear-gradient(135deg, ${section.colors.primary}, ${section.colors.secondary})` }"
                 ></div>
                 <span class="legend-text">
                   {{ section.emoji }} 
@@ -224,9 +224,8 @@ const wheelSections = [
     emoji: '🎯', 
     value: '10%',
     colors: {
-      primary: '#FF6B6B',
-      secondary: '#FF8E8E',
-      gradient: 'linear-gradient(135deg, #FF4757 0%, #FF6B6B 100%)'
+      primary: '#FF4757',
+      secondary: '#FF6B6B'
     },
     name: '10% descuento'
   },
@@ -236,9 +235,8 @@ const wheelSections = [
     emoji: '🎪', 
     value: '15%',
     colors: {
-      primary: '#4ECDC4',
-      secondary: '#6EDDD6',
-      gradient: 'linear-gradient(135deg, #00CEC9 0%, #4ECDC4 100%)'
+      primary: '#00CEC9',
+      secondary: '#4ECDC4'
     },
     name: '15% descuento'
   },
@@ -248,9 +246,8 @@ const wheelSections = [
     emoji: '🎭', 
     value: '20%',
     colors: {
-      primary: '#45B7D1',
-      secondary: '#67C5E3',
-      gradient: 'linear-gradient(135deg, #0984E3 0%, #45B7D1 100%)'
+      primary: '#0984E3',
+      secondary: '#45B7D1'
     },
     name: '20% descuento'
   },
@@ -260,9 +257,8 @@ const wheelSections = [
     emoji: '🎨', 
     value: '25%',
     colors: {
-      primary: '#96CEB4',
-      secondary: '#A8D6C6',
-      gradient: 'linear-gradient(135deg, #00B894 0%, #96CEB4 100%)'
+      primary: '#00B894',
+      secondary: '#96CEB4'
     },
     name: '25% descuento'
   },
@@ -272,9 +268,8 @@ const wheelSections = [
     emoji: '🍹', 
     value: 'GRATIS',
     colors: {
-      primary: '#FFEAA7',
-      secondary: '#FFEBB9',
-      gradient: 'linear-gradient(135deg, #FDCB6E 0%, #FFEAA7 100%)'
+      primary: '#FDCB6E',
+      secondary: '#FFEAA7'
     },
     name: 'Cubata gratis'
   },
@@ -284,15 +279,39 @@ const wheelSections = [
     emoji: '😢', 
     value: 'SIN PREMIO',
     colors: {
-      primary: '#DDA0DD',
-      secondary: '#E6B2E6',
-      gradient: 'linear-gradient(135deg, #A29BFE 0%, #DDA0DD 100%)'
+      primary: '#A29BFE',
+      secondary: '#DDA0DD'
     },
     name: 'Sin premio'
   }
 ];
 
 const sectionAngle = 360 / wheelSections.length; // 60 grados por sección
+
+// Función para generar el path SVG de cada sección
+const getSectionPath = (index) => {
+  const centerX = 175;
+  const centerY = 175;
+  const radius = 165;
+  const innerRadius = 50;
+  
+  const startAngle = (index * sectionAngle) * (Math.PI / 180);
+  const endAngle = ((index + 1) * sectionAngle) * (Math.PI / 180);
+  
+  const x1 = centerX + Math.cos(startAngle) * innerRadius;
+  const y1 = centerY + Math.sin(startAngle) * innerRadius;
+  const x2 = centerX + Math.cos(startAngle) * radius;
+  const y2 = centerY + Math.sin(startAngle) * radius;
+  
+  const x3 = centerX + Math.cos(endAngle) * radius;
+  const y3 = centerY + Math.sin(endAngle) * radius;
+  const x4 = centerX + Math.cos(endAngle) * innerRadius;
+  const y4 = centerY + Math.sin(endAngle) * innerRadius;
+  
+  const largeArc = sectionAngle > 180 ? 1 : 0;
+  
+  return `M ${x1} ${y1} L ${x2} ${y2} A ${radius} ${radius} 0 ${largeArc} 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1} ${y1}`;
+};
 
 // Computed properties
 const availablePrizes = computed(() => 
@@ -484,7 +503,7 @@ onUnmounted(() => {
 </script>
 
 <style scoped>
-/* Fondo y contenedor principal (igual que antes) */
+/* Fondo y contenedor principal */
 .game-content {
   --background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
 }
@@ -504,7 +523,7 @@ onUnmounted(() => {
   max-width: 450px;
 }
 
-/* RULETA ELEGANTE */
+/* RULETA CON SVG */
 .wheel-container {
   position: relative;
   width: 350px;
@@ -512,82 +531,38 @@ onUnmounted(() => {
   margin: 0 auto 30px;
 }
 
-.game-wheel {
+.wheel-wrapper {
+  position: relative;
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  position: relative;
-  border: 6px solid #ffffff;
   box-shadow: 
     0 0 0 4px rgba(255, 255, 255, 0.3),
-    0 20px 60px rgba(0, 0, 0, 0.4),
-    inset 0 0 30px rgba(255, 255, 255, 0.1);
+    0 20px 60px rgba(0, 0, 0, 0.4);
   overflow: hidden;
+}
+
+.game-wheel {
+  width: 100%;
+  height: 100%;
   transition: transform 4s cubic-bezier(0.23, 1, 0.320, 1);
   transform-origin: center center;
-  background: #f8f9fa;
 }
 
 .game-wheel.spinning {
   transition: transform 4s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
-/* Secciones limpias - solo colores más vibrantes */
-.wheel-section {
-  position: absolute;
-  width: 50%;
-  height: 50%;
-  top: 50%;
-  left: 50%;
-  transform-origin: 0 0;
-  clip-path: polygon(0 0, 0 100%, 86.6% 50%);
-  position: relative;
-  overflow: hidden;
-  border-right: 2px solid rgba(255, 255, 255, 0.6);
+.wheel-section-svg {
+  transition: opacity 0.3s ease;
 }
 
-/* Efecto de brillo en cada sección - más sutil para no ocultar el color */
-.section-shine {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: 
-    radial-gradient(circle at 70% 30%, 
-      rgba(255, 255, 255, 0.2) 0%, 
-      rgba(255, 255, 255, 0.05) 40%,
-      transparent 70%),
-    linear-gradient(135deg, 
-      transparent 40%, 
-      rgba(255, 255, 255, 0.1) 60%, 
-      transparent 80%);
-  pointer-events: none;
+.wheel-section-svg:hover {
+  opacity: 0.8;
 }
 
-/* Marcadores de división más visibles */
-.wheel-markers {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  pointer-events: none;
-}
-
-.section-marker {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 3px;
-  height: 50%;
-  background: linear-gradient(to bottom,
-    rgba(255, 255, 255, 0.9) 0%,
-    rgba(255, 255, 255, 0.6) 70%,
-    transparent 100%);
-  transform-origin: 0 0;
-  z-index: 10;
-  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
+.center-circle {
+  filter: drop-shadow(0 4px 15px rgba(0, 0, 0, 0.3));
 }
 
 /* Indicador/Flecha elegante */
@@ -643,56 +618,33 @@ onUnmounted(() => {
 }
 
 .center-button {
-  width: 100px;
-  height: 100px;
+  width: 80px;
+  height: 80px;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 8px solid white;
+  border: 4px solid white;
   box-shadow: 
-    0 0 0 4px rgba(255, 255, 255, 0.3),
-    0 15px 40px rgba(0, 0, 0, 0.4),
-    inset 0 0 30px rgba(255, 255, 255, 0.2);
+    0 0 0 2px rgba(255, 255, 255, 0.3),
+    0 8px 25px rgba(0, 0, 0, 0.4);
   cursor: pointer;
   transition: all 0.3s ease;
   position: relative;
-  overflow: hidden;
 }
 
 .center-button:hover {
   transform: scale(1.05);
   box-shadow: 
-    0 0 0 4px rgba(255, 255, 255, 0.5),
-    0 20px 50px rgba(0, 0, 0, 0.5),
-    inset 0 0 40px rgba(255, 255, 255, 0.3);
-}
-
-.center-glow {
-  position: absolute;
-  top: 10px;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 30% 30%, 
-    rgba(255, 255, 255, 0.3) 0%, 
-    transparent 70%);
-  animation: centerGlow 3s ease-in-out infinite;
-}
-
-@keyframes centerGlow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 0.8; }
+    0 0 0 2px rgba(255, 255, 255, 0.5),
+    0 12px 35px rgba(0, 0, 0, 0.5);
 }
 
 .center-icon {
-  font-size: 36px;
+  font-size: 32px;
   color: white;
-  position: relative;
-  z-index: 2;
-  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3));
 }
 
 /* LEYENDA DE PREMIOS */
@@ -762,7 +714,7 @@ onUnmounted(() => {
   color: #FFE066;
 }
 
-/* RESTO DEL CSS IGUAL QUE ANTES */
+/* INFORMACIÓN DEL JUEGO */
 .game-info {
   color: white;
   margin-bottom: 30px;
@@ -801,6 +753,7 @@ onUnmounted(() => {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
+/* BOTÓN DE GIRAR */
 .spin-button {
   --background: linear-gradient(45deg, #ff6b6b, #ee5a52);
   --background-hover: linear-gradient(45deg, #ff5252, #e57373);
@@ -826,6 +779,7 @@ onUnmounted(() => {
   opacity: 0.6;
 }
 
+/* MENSAJE DE GIRO */
 .spinning-message {
   color: white;
   margin-top: 20px;
@@ -871,7 +825,7 @@ onUnmounted(() => {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.4);
 }
 
-/* ESTADO DE COOLDOWN (todo igual que antes) */
+/* ESTADO DE COOLDOWN */
 .cooldown-state {
   color: white;
 }
@@ -908,6 +862,7 @@ onUnmounted(() => {
   opacity: 0.9;
 }
 
+/* CONTADOR REGRESIVO */
 .countdown-timer {
   display: flex;
   justify-content: center;
@@ -953,6 +908,7 @@ onUnmounted(() => {
   51%, 100% { opacity: 0.3; }
 }
 
+/* BOTÓN DE VALIDACIÓN */
 .validate-button {
   --color: white;
   --border-color: rgba(255, 255, 255, 0.8);
@@ -962,6 +918,7 @@ onUnmounted(() => {
   font-size: 16px;
 }
 
+/* SECCIÓN DE ÚLTIMO RESULTADO */
 .last-result-section {
   background: rgba(255, 255, 255, 0.1);
   border-radius: 20px;
@@ -1015,6 +972,7 @@ onUnmounted(() => {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
 }
 
+/* CÓDIGO DE DESCUENTO */
 .discount-code-display {
   text-align: center;
 }
