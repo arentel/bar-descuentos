@@ -935,30 +935,65 @@ if (process.env.NODE_ENV === 'development') {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* BOTÓN DE GIRAR */
-.spin-button {
-  --background: linear-gradient(45deg, #ff6b6b, #ee5a52);
-  --background-hover: linear-gradient(45deg, #ff5252, #e57373);
-  --color: white;
-  font-weight: bold;
-  font-size: 20px;
-  height: 65px;
-  --border-radius: 32px;
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
+/* BOTÓN MINIMALISTA */
+.spin-button-minimal {
+  background: transparent;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  color: white;
+  font-weight: 700;
+  font-size: 18px;
+  padding: 18px 40px;
+  border-radius: 50px;
+  cursor: pointer;
   transition: all 0.3s ease;
-  margin-bottom: 20px;
+  margin: 20px 0;
+  font-family: inherit;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
-.spin-button:hover {
-  transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.7);
+.spin-button-minimal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
 }
 
-.spin-button:disabled {
-  --background: #cccccc;
+.spin-button-minimal:hover {
+  border-color: rgba(255, 255, 255, 1);
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
+}
+
+.spin-button-minimal:hover::before {
+  left: 100%;
+}
+
+.spin-button-minimal:active {
+  transform: translateY(0px);
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.spin-button-minimal:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.4);
   transform: none;
   box-shadow: none;
-  opacity: 0.6;
+}
+
+.spin-button-minimal:disabled::before {
+  display: none;
 }
 
 /* MENSAJE DE GIRO */
