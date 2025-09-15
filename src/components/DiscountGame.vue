@@ -195,6 +195,7 @@
   </ion-page>
 </template>
 
+
 <script setup>
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
@@ -361,6 +362,7 @@ const startCountdown = () => {
   }, 1000);
 };
 
+// NUEVA LÓGICA DE GIRO CORREGIDA
 const spinWheel = async () => {
   if (!canPlay.value || isSpinning.value) return;
   
@@ -368,71 +370,72 @@ const spinWheel = async () => {
   isSpinning.value = true;
 
   try {
-    // 1. Seleccionar el premio usando la lógica de probabilidades
-    const wonPrize = GameLogic.selectRandomPrize();
-    console.log('🎁 Premio seleccionado:', wonPrize);
+    // 1. Generar rotación aleatoria (muchas vueltas + ángulo aleatorio)
+    const extraSpins = 5 + Math.random() * 5; // Entre 5 y 10 vueltas
+    const randomAngle = Math.random() * 360; // Ángulo aleatorio entre 0 y 360
+    const totalRotation = (extraSpins * 360) + randomAngle;
     
-    // 2. AQUÍ ESTÁ LA CLAVE: Buscar la sección que coincida EXACTAMENTE
-    const targetSection = wheelSections.find(section => 
-      section.discount === wonPrize.discount && section.id === wonPrize.id
-    );
-    
-    if (!targetSection) {
-      console.error('❌ No se encontró sección para el premio:', wonPrize);
-      throw new Error('Sección no encontrada');
-    }
-    
-    const targetIndex = wheelSections.indexOf(targetSection);
-    console.log('🎯 Sección objetivo:', { targetIndex, section: targetSection });
-    
-    // 3. Generar código de descuento
-    const discountCode = GameLogic.generateDiscountCode(wonPrize);
-    
-    // 4. Calcular rotación PRECISA para que apunte al centro de la sección
-    const extraSpins = 5 + Math.random() * 3;
-    
-    // Cada sección tiene 60° (360°/6 secciones)
-    // El centro de cada sección está a: (index * 60°) + 30°
-    const sectionCenterAngle = (targetIndex * sectionAngle) + (sectionAngle / 2);
-    
-    // Para que la flecha (0°) apunte al centro, rotamos la ruleta al revés
-    const targetRotation = 360 - sectionCenterAngle;
-    
-    // Rotación total con vueltas extra
-    const totalRotation = (extraSpins * 360) + targetRotation;
-    
-    console.log('🔄 Rotación calculada:', {
-      sectionAngle,
-      sectionCenterAngle,
-      targetRotation,
-      totalRotation
+    console.log('🔄 Rotación generada:', {
+      extraSpins: extraSpins.toFixed(2),
+      randomAngle: randomAngle.toFixed(2),
+      totalRotation: totalRotation.toFixed(2)
     });
     
-    // 5. Aplicar rotación
+    // 2. Aplicar la rotación
     currentRotation.value += totalRotation;
     
-    // 6. Esperar animación y mostrar resultado
+    // 3. Esperar a que termine la animación
     setTimeout(() => {
-      // VERIFICACIÓN: Comprobar dónde quedó la flecha
+      // 4. CALCULAR EN QUÉ SECCIÓN CAYÓ LA FLECHA
       const finalAngle = currentRotation.value % 360;
-      const normalizedAngle = (360 - finalAngle) % 360;
-      const resultSectionIndex = Math.floor(normalizedAngle / sectionAngle);
-      const resultSection = wheelSections[resultSectionIndex];
       
-      console.log('✅ Verificación final:', {
-        finalAngle,
-        normalizedAngle,
-        resultSectionIndex,
-        expectedIndex: targetIndex,
-        resultSection: resultSection?.value,
-        expectedSection: targetSection.value,
-        match: resultSectionIndex === targetIndex
+      // La flecha apunta hacia arriba (0°), pero las secciones empiezan desde 0° y van en sentido horario
+      // Necesitamos normalizar el ángulo para saber en qué sección estamos
+      const normalizedAngle = (360 - finalAngle) % 360;
+      
+      // Calcular el índice de la sección (cada sección tiene 60°)
+      const sectionIndex = Math.floor(normalizedAngle / sectionAngle);
+      
+      // Asegurarse de que el índice esté dentro del rango válido
+      const finalSectionIndex = Math.max(0, Math.min(sectionIndex, wheelSections.length - 1));
+      
+      // 5. OBTENER EL PREMIO CORRESPONDIENTE A ESA SECCIÓN
+      const wonSection = wheelSections[finalSectionIndex];
+      
+      console.log('🎯 Resultado calculado:', {
+        finalAngle: finalAngle.toFixed(2),
+        normalizedAngle: normalizedAngle.toFixed(2),
+        sectionIndex,
+        finalSectionIndex,
+        wonSection: {
+          id: wonSection.id,
+          discount: wonSection.discount,
+          value: wonSection.value,
+          name: wonSection.name,
+          color: wonSection.colors.primary
+        }
       });
       
-      // Guardar resultado
+      // 6. Crear el objeto premio basado en la sección donde cayó
+      const wonPrize = {
+        id: wonSection.id,
+        discount: wonSection.discount,
+        name: wonSection.name,
+        emoji: wonSection.emoji
+      };
+      
+      // 7. Generar código de descuento
+      const discountCode = GameLogic.generateDiscountCode(wonPrize);
+      
+      console.log('💳 Premio final:', {
+        wonPrize,
+        discountCode
+      });
+      
+      // 8. Guardar resultado en localStorage
       GameLogic.saveGameResult(wonPrize, discountCode);
       
-      // Mostrar resultado
+      // 9. Mostrar resultado al usuario
       gameResult.value = {
         ...wonPrize,
         discountCode,
@@ -442,7 +445,7 @@ const spinWheel = async () => {
       canPlay.value = false;
       isSpinning.value = false;
       
-    }, 4000);
+    }, 4000); // Esperar 4 segundos (duración de la animación)
     
   } catch (error) {
     console.error('❌ Error en el juego:', error);
@@ -451,6 +454,92 @@ const spinWheel = async () => {
   }
 };
 
+// Función auxiliar para verificar el resultado (opcional, para debugging)
+const verifyResult = () => {
+  const finalAngle = currentRotation.value % 360;
+  const normalizedAngle = (360 - finalAngle) % 360;
+  const sectionIndex = Math.floor(normalizedAngle / sectionAngle);
+  const finalSectionIndex = Math.max(0, Math.min(sectionIndex, wheelSections.length - 1));
+  const section = wheelSections[finalSectionIndex];
+  
+  console.log('🔍 Verificación:', {
+    currentRotation: currentRotation.value.toFixed(2),
+    finalAngle: finalAngle.toFixed(2),
+    normalizedAngle: normalizedAngle.toFixed(2),
+    sectionIndex,
+    finalSectionIndex,
+    sectionName: section.name,
+    sectionValue: section.value,
+    sectionColor: section.colors.primary
+  });
+  
+  return section;
+};
+
+// Funciones de debug opcionales (para desarrollo)
+const addDebugIndicators = () => {
+  // Solo para desarrollo - muestra líneas que dividen las secciones
+  const wheelContainer = document.querySelector('.wheel-container');
+  if (!wheelContainer) return;
+  
+  for (let i = 0; i < wheelSections.length; i++) {
+    const line = document.createElement('div');
+    line.className = 'debug-line';
+    line.style.position = 'absolute';
+    line.style.top = '50%';
+    line.style.left = '50%';
+    line.style.width = '2px';
+    line.style.height = '175px';
+    line.style.background = 'red';
+    line.style.transformOrigin = '0 0';
+    line.style.transform = `rotate(${i * sectionAngle}deg)`;
+    line.style.zIndex = '25';
+    line.style.pointerEvents = 'none';
+    wheelContainer.appendChild(line);
+    
+    // Agregar texto con el índice de sección
+    const label = document.createElement('div');
+    label.className = 'debug-label';
+    label.textContent = `${i}: ${wheelSections[i].value}`;
+    label.style.position = 'absolute';
+    label.style.top = '30px';
+    label.style.left = '10px';
+    label.style.fontSize = '10px';
+    label.style.color = 'red';
+    label.style.background = 'white';
+    label.style.padding = '2px 4px';
+    label.style.transformOrigin = '0 0';
+    label.style.transform = `rotate(${i * sectionAngle + sectionAngle/2}deg) translateY(-140px)`;
+    label.style.zIndex = '25';
+    wheelContainer.appendChild(label);
+  }
+};
+
+const removeDebugIndicators = () => {
+  const debugElements = document.querySelectorAll('.debug-line, .debug-label');
+  debugElements.forEach(el => el.remove());
+};
+
+const showDetailedResult = () => {
+  const result = verifyResult();
+  
+  const info = `
+🎯 RESULTADO DETALLADO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📐 Rotación total: ${currentRotation.value.toFixed(2)}°
+📐 Ángulo final: ${(currentRotation.value % 360).toFixed(2)}°
+📐 Ángulo normalizado: ${((360 - (currentRotation.value % 360)) % 360).toFixed(2)}°
+📍 Índice de sección: ${Math.floor(((360 - (currentRotation.value % 360)) % 360) / sectionAngle)}
+🎁 Premio obtenido: ${result.value}
+🎨 Color: ${result.colors.primary}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+  `;
+  
+  console.log(info);
+  return result;
+};
+
+// Resto de funciones existentes
 const resetGame = () => {
   gameResult.value = null;
   isSpinning.value = false;
@@ -492,14 +581,35 @@ const formatExpiryTime = (playTimestamp) => {
 
 // Lifecycle hooks
 onMounted(() => {
+  console.log('🚀 Juego de descuentos iniciado');
+  console.log('📋 Secciones configuradas:', wheelSections.map(s => ({
+    id: s.id, 
+    value: s.value, 
+    color: s.colors.primary
+  })));
+  
   checkGameState();
+  
+  // Descomentar la siguiente línea si quieres ver las líneas de debug
+  // addDebugIndicators();
 });
 
 onUnmounted(() => {
   if (countdownInterval) {
     clearInterval(countdownInterval);
   }
+  removeDebugIndicators();
 });
+
+// Exponer funciones de debug globalmente (opcional, solo para desarrollo)
+if (process.env.NODE_ENV === 'development') {
+  window.debugWheel = {
+    verify: verifyResult,
+    showResult: showDetailedResult,
+    addLines: addDebugIndicators,
+    removeLines: removeDebugIndicators
+  };
+}
 </script>
 
 <style scoped>
