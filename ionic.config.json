@@ -1,0 +1,7 @@
+{
+  "name": "discounts-game",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite"
+}
