@@ -226,7 +226,7 @@ const wheelSections = [
     colors: {
       primary: '#FF6B6B',
       secondary: '#FF8E8E',
-      gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)'
+      gradient: 'linear-gradient(135deg, #FF4757 0%, #FF6B6B 100%)'
     },
     name: '10% descuento'
   },
@@ -238,7 +238,7 @@ const wheelSections = [
     colors: {
       primary: '#4ECDC4',
       secondary: '#6EDDD6',
-      gradient: 'linear-gradient(135deg, #4ECDC4 0%, #6EDDD6 100%)'
+      gradient: 'linear-gradient(135deg, #00CEC9 0%, #4ECDC4 100%)'
     },
     name: '15% descuento'
   },
@@ -250,7 +250,7 @@ const wheelSections = [
     colors: {
       primary: '#45B7D1',
       secondary: '#67C5E3',
-      gradient: 'linear-gradient(135deg, #45B7D1 0%, #67C5E3 100%)'
+      gradient: 'linear-gradient(135deg, #0984E3 0%, #45B7D1 100%)'
     },
     name: '20% descuento'
   },
@@ -262,7 +262,7 @@ const wheelSections = [
     colors: {
       primary: '#96CEB4',
       secondary: '#A8D6C6',
-      gradient: 'linear-gradient(135deg, #96CEB4 0%, #A8D6C6 100%)'
+      gradient: 'linear-gradient(135deg, #00B894 0%, #96CEB4 100%)'
     },
     name: '25% descuento'
   },
@@ -274,7 +274,7 @@ const wheelSections = [
     colors: {
       primary: '#FFEAA7',
       secondary: '#FFEBB9',
-      gradient: 'linear-gradient(135deg, #FFEAA7 0%, #FFEBB9 100%)'
+      gradient: 'linear-gradient(135deg, #FDCB6E 0%, #FFEAA7 100%)'
     },
     name: 'Cubata gratis'
   },
@@ -286,7 +286,7 @@ const wheelSections = [
     colors: {
       primary: '#DDA0DD',
       secondary: '#E6B2E6',
-      gradient: 'linear-gradient(135deg, #DDA0DD 0%, #E6B2E6 100%)'
+      gradient: 'linear-gradient(135deg, #A29BFE 0%, #DDA0DD 100%)'
     },
     name: 'Sin premio'
   }
@@ -525,30 +525,14 @@ onUnmounted(() => {
   overflow: hidden;
   transition: transform 4s cubic-bezier(0.23, 1, 0.320, 1);
   transform-origin: center center;
-  background: 
-    radial-gradient(circle at center, 
-      rgba(255, 255, 255, 0.1) 0%, 
-      rgba(255, 255, 255, 0.05) 30%,
-      transparent 70%),
-    conic-gradient(from 0deg, 
-      rgba(255, 255, 255, 0.1), 
-      transparent 10%, 
-      rgba(255, 255, 255, 0.1) 20%,
-      transparent 30%,
-      rgba(255, 255, 255, 0.1) 40%,
-      transparent 50%,
-      rgba(255, 255, 255, 0.1) 60%,
-      transparent 70%,
-      rgba(255, 255, 255, 0.1) 80%,
-      transparent 90%,
-      rgba(255, 255, 255, 0.1));
+  background: #f8f9fa;
 }
 
 .game-wheel.spinning {
   transition: transform 4s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
-/* Secciones limpias - solo colores */
+/* Secciones limpias - solo colores más vibrantes */
 .wheel-section {
   position: absolute;
   width: 50%;
@@ -559,9 +543,10 @@ onUnmounted(() => {
   clip-path: polygon(0 0, 0 100%, 86.6% 50%);
   position: relative;
   overflow: hidden;
+  border-right: 2px solid rgba(255, 255, 255, 0.6);
 }
 
-/* Efecto de brillo en cada sección */
+/* Efecto de brillo en cada sección - más sutil para no ocultar el color */
 .section-shine {
   position: absolute;
   top: 0;
@@ -569,18 +554,18 @@ onUnmounted(() => {
   right: 0;
   bottom: 0;
   background: 
-    radial-gradient(circle at 30% 30%, 
-      rgba(255, 255, 255, 0.3) 0%, 
-      rgba(255, 255, 255, 0.1) 40%,
+    radial-gradient(circle at 70% 30%, 
+      rgba(255, 255, 255, 0.2) 0%, 
+      rgba(255, 255, 255, 0.05) 40%,
       transparent 70%),
-    linear-gradient(45deg, 
-      transparent 30%, 
-      rgba(255, 255, 255, 0.1) 50%, 
-      transparent 70%);
+    linear-gradient(135deg, 
+      transparent 40%, 
+      rgba(255, 255, 255, 0.1) 60%, 
+      transparent 80%);
   pointer-events: none;
 }
 
-/* Marcadores de división elegantes */
+/* Marcadores de división más visibles */
 .wheel-markers {
   position: absolute;
   top: 0;
@@ -594,14 +579,15 @@ onUnmounted(() => {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 2px;
+  width: 3px;
   height: 50%;
   background: linear-gradient(to bottom,
-    rgba(255, 255, 255, 0.8) 0%,
-    rgba(255, 255, 255, 0.4) 70%,
+    rgba(255, 255, 255, 0.9) 0%,
+    rgba(255, 255, 255, 0.6) 70%,
     transparent 100%);
   transform-origin: 0 0;
   z-index: 10;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.3);
 }
 
 /* Indicador/Flecha elegante */
