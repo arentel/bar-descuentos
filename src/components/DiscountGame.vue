@@ -12,40 +12,71 @@
         <!-- Estado: Puede jugar -->
         <div v-if="canPlay && !gameResult" class="play-state">
           <div class="wheel-container">
-            <!-- La ruleta mejorada -->
+            <!-- La ruleta elegante -->
             <div 
               class="game-wheel" 
               :class="{ 'spinning': isSpinning }"
               :style="{ transform: `rotate(${currentRotation}deg)` }"
             >
-              <!-- Secciones de la ruleta -->
+              <!-- Secciones de la ruleta (solo colores) -->
               <div 
                 v-for="(section, index) in wheelSections" 
                 :key="section.id"
                 class="wheel-section"
                 :style="{ 
                   transform: `rotate(${index * sectionAngle}deg)`,
-                  '--section-color-1': section.colors.primary,
-                  '--section-color-2': section.colors.secondary
+                  background: section.colors.gradient
                 }"
               >
-                <div class="section-content">
-                  <div class="prize-emoji">{{ section.emoji }}</div>
-                  <div class="prize-text">{{ section.text }}</div>
-                  <div class="prize-value">{{ section.value }}</div>
-                </div>
+                <!-- Efecto de brillo -->
+                <div class="section-shine"></div>
               </div>
             </div>
             
-            <!-- Indicador/Flecha -->
+            <!-- Indicador/Flecha elegante -->
             <div class="wheel-indicator">
-              <div class="indicator-arrow"></div>
+              <div class="indicator-arrow">
+                <div class="arrow-body"></div>
+                <div class="arrow-tip"></div>
+              </div>
             </div>
             
-            <!-- Centro de la ruleta -->
+            <!-- Centro de la ruleta elegante -->
             <div class="wheel-center">
               <div class="center-button">
+                <div class="center-glow"></div>
                 <ion-icon :icon="giftOutline" class="center-icon"></ion-icon>
+              </div>
+            </div>
+
+            <!-- Marcadores de división -->
+            <div class="wheel-markers">
+              <div 
+                v-for="n in wheelSections.length" 
+                :key="n"
+                class="section-marker"
+                :style="{ transform: `rotate(${(n-1) * sectionAngle}deg)` }"
+              ></div>
+            </div>
+          </div>
+
+          <!-- Leyenda de premios -->
+          <div class="prize-legend">
+            <h3 class="legend-title">🎁 Premios por color:</h3>
+            <div class="legend-items">
+              <div 
+                v-for="section in wheelSections" 
+                :key="section.id"
+                class="legend-item"
+              >
+                <div 
+                  class="legend-color"
+                  :style="{ background: section.colors.gradient }"
+                ></div>
+                <span class="legend-text">
+                  {{ section.emoji }} 
+                  <strong>{{ section.value === 'GRATIS' ? 'Bebida Gratis' : section.value }}</strong>
+                </span>
               </div>
             </div>
           </div>
@@ -191,11 +222,11 @@ const wheelSections = [
     id: 1, 
     discount: 10, 
     emoji: '🎯', 
-    text: 'DESCUENTO', 
     value: '10%',
     colors: {
       primary: '#FF6B6B',
-      secondary: '#FF8E8E'
+      secondary: '#FF8E8E',
+      gradient: 'linear-gradient(135deg, #FF6B6B 0%, #FF8E8E 100%)'
     },
     name: '10% descuento'
   },
@@ -203,11 +234,11 @@ const wheelSections = [
     id: 2, 
     discount: 15, 
     emoji: '🎪', 
-    text: 'DESCUENTO', 
     value: '15%',
     colors: {
       primary: '#4ECDC4',
-      secondary: '#6EDDD6'
+      secondary: '#6EDDD6',
+      gradient: 'linear-gradient(135deg, #4ECDC4 0%, #6EDDD6 100%)'
     },
     name: '15% descuento'
   },
@@ -215,11 +246,11 @@ const wheelSections = [
     id: 3, 
     discount: 20, 
     emoji: '🎭', 
-    text: 'DESCUENTO', 
     value: '20%',
     colors: {
       primary: '#45B7D1',
-      secondary: '#67C5E3'
+      secondary: '#67C5E3',
+      gradient: 'linear-gradient(135deg, #45B7D1 0%, #67C5E3 100%)'
     },
     name: '20% descuento'
   },
@@ -227,11 +258,11 @@ const wheelSections = [
     id: 4, 
     discount: 25, 
     emoji: '🎨', 
-    text: 'DESCUENTO', 
     value: '25%',
     colors: {
       primary: '#96CEB4',
-      secondary: '#A8D6C6'
+      secondary: '#A8D6C6',
+      gradient: 'linear-gradient(135deg, #96CEB4 0%, #A8D6C6 100%)'
     },
     name: '25% descuento'
   },
@@ -239,11 +270,11 @@ const wheelSections = [
     id: 5, 
     discount: 100, 
     emoji: '🍹', 
-    text: 'BEBIDA', 
     value: 'GRATIS',
     colors: {
       primary: '#FFEAA7',
-      secondary: '#FFEBB9'
+      secondary: '#FFEBB9',
+      gradient: 'linear-gradient(135deg, #FFEAA7 0%, #FFEBB9 100%)'
     },
     name: 'Cubata gratis'
   },
@@ -251,11 +282,11 @@ const wheelSections = [
     id: 6, 
     discount: 0, 
     emoji: '😢', 
-    text: 'SIN', 
-    value: 'PREMIO',
+    value: 'SIN PREMIO',
     colors: {
       primary: '#DDA0DD',
-      secondary: '#E6B2E6'
+      secondary: '#E6B2E6',
+      gradient: 'linear-gradient(135deg, #DDA0DD 0%, #E6B2E6 100%)'
     },
     name: 'Sin premio'
   }
@@ -473,11 +504,11 @@ onUnmounted(() => {
   max-width: 450px;
 }
 
-/* RULETA MEJORADA - Solo esta parte cambia */
+/* RULETA ELEGANTE */
 .wheel-container {
   position: relative;
-  width: 320px;
-  height: 320px;
+  width: 350px;
+  height: 350px;
   margin: 0 auto 30px;
 }
 
@@ -486,20 +517,38 @@ onUnmounted(() => {
   height: 100%;
   border-radius: 50%;
   position: relative;
-  border: 8px solid #ffffff;
+  border: 6px solid #ffffff;
   box-shadow: 
-    0 0 30px rgba(0, 0, 0, 0.4),
-    inset 0 0 20px rgba(255, 255, 255, 0.1);
+    0 0 0 4px rgba(255, 255, 255, 0.3),
+    0 20px 60px rgba(0, 0, 0, 0.4),
+    inset 0 0 30px rgba(255, 255, 255, 0.1);
   overflow: hidden;
   transition: transform 4s cubic-bezier(0.23, 1, 0.320, 1);
   transform-origin: center center;
+  background: 
+    radial-gradient(circle at center, 
+      rgba(255, 255, 255, 0.1) 0%, 
+      rgba(255, 255, 255, 0.05) 30%,
+      transparent 70%),
+    conic-gradient(from 0deg, 
+      rgba(255, 255, 255, 0.1), 
+      transparent 10%, 
+      rgba(255, 255, 255, 0.1) 20%,
+      transparent 30%,
+      rgba(255, 255, 255, 0.1) 40%,
+      transparent 50%,
+      rgba(255, 255, 255, 0.1) 60%,
+      transparent 70%,
+      rgba(255, 255, 255, 0.1) 80%,
+      transparent 90%,
+      rgba(255, 255, 255, 0.1));
 }
 
 .game-wheel.spinning {
   transition: transform 4s cubic-bezier(0.23, 1, 0.320, 1);
 }
 
-/* Secciones mejoradas */
+/* Secciones limpias - solo colores */
 .wheel-section {
   position: absolute;
   width: 50%;
@@ -508,71 +557,97 @@ onUnmounted(() => {
   left: 50%;
   transform-origin: 0 0;
   clip-path: polygon(0 0, 0 100%, 86.6% 50%);
-  background: linear-gradient(135deg, var(--section-color-1), var(--section-color-2));
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 2px solid rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
-.section-content {
-  transform: rotate(30deg) translateY(-50px);
-  text-align: center;
-  color: white;
-  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.8);
-  font-weight: bold;
+/* Efecto de brillo en cada sección */
+.section-shine {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    radial-gradient(circle at 30% 30%, 
+      rgba(255, 255, 255, 0.3) 0%, 
+      rgba(255, 255, 255, 0.1) 40%,
+      transparent 70%),
+    linear-gradient(45deg, 
+      transparent 30%, 
+      rgba(255, 255, 255, 0.1) 50%, 
+      transparent 70%);
+  pointer-events: none;
 }
 
-.prize-emoji {
-  font-size: 24px;
-  margin-bottom: 5px;
+/* Marcadores de división elegantes */
+.wheel-markers {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
 }
 
-.prize-text {
-  font-size: 11px;
-  font-weight: 800;
-  letter-spacing: 0.5px;
-  margin-bottom: 2px;
+.section-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 50%;
+  background: linear-gradient(to bottom,
+    rgba(255, 255, 255, 0.8) 0%,
+    rgba(255, 255, 255, 0.4) 70%,
+    transparent 100%);
+  transform-origin: 0 0;
+  z-index: 10;
 }
 
-.prize-value {
-  font-size: 14px;
-  font-weight: 900;
-  text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.9);
-}
-
-/* Indicador/Flecha (igual que antes) */
+/* Indicador/Flecha elegante */
 .wheel-indicator {
   position: absolute;
-  top: -20px;
+  top: -30px;
   left: 50%;
   transform: translateX(-50%);
   z-index: 20;
 }
 
 .indicator-arrow {
+  position: relative;
+  filter: drop-shadow(0 8px 20px rgba(255, 55, 66, 0.5));
+}
+
+.arrow-body {
+  width: 6px;
+  height: 25px;
+  background: linear-gradient(to bottom, #ff3742, #ff5252);
+  border-radius: 3px;
+  margin: 0 auto 2px;
+}
+
+.arrow-tip {
   width: 0;
   height: 0;
-  border-left: 20px solid transparent;
-  border-right: 20px solid transparent;
-  border-top: 40px solid #ff4757;
-  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.5));
+  border-left: 15px solid transparent;
+  border-right: 15px solid transparent;
+  border-top: 25px solid #ff3742;
   position: relative;
 }
 
-.indicator-arrow::after {
+.arrow-tip::after {
   content: '';
   position: absolute;
-  top: -35px;
-  left: -16px;
+  top: -22px;
+  left: -12px;
   width: 0;
   height: 0;
-  border-left: 16px solid transparent;
-  border-right: 16px solid transparent;
-  border-top: 30px solid #ffffff;
+  border-left: 12px solid transparent;
+  border-right: 12px solid transparent;
+  border-top: 20px solid #ffffff;
 }
 
-/* Centro de la ruleta (igual que antes) */
+/* Centro elegante */
 .wheel-center {
   position: absolute;
   top: 50%;
@@ -582,26 +657,123 @@ onUnmounted(() => {
 }
 
 .center-button {
-  width: 80px;
-  height: 80px;
-  background: linear-gradient(45deg, #667eea, #764ba2);
+  width: 100px;
+  height: 100px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 6px solid white;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  border: 8px solid white;
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.3),
+    0 15px 40px rgba(0, 0, 0, 0.4),
+    inset 0 0 30px rgba(255, 255, 255, 0.2);
   cursor: pointer;
-  transition: transform 0.3s ease;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
 }
 
 .center-button:hover {
-  transform: scale(1.1);
+  transform: scale(1.05);
+  box-shadow: 
+    0 0 0 4px rgba(255, 255, 255, 0.5),
+    0 20px 50px rgba(0, 0, 0, 0.5),
+    inset 0 0 40px rgba(255, 255, 255, 0.3);
+}
+
+.center-glow {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  right: 10px;
+  bottom: 10px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, 
+    rgba(255, 255, 255, 0.3) 0%, 
+    transparent 70%);
+  animation: centerGlow 3s ease-in-out infinite;
+}
+
+@keyframes centerGlow {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
 }
 
 .center-icon {
-  font-size: 32px;
+  font-size: 36px;
   color: white;
+  position: relative;
+  z-index: 2;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
+}
+
+/* LEYENDA DE PREMIOS */
+.prize-legend {
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(15px);
+  border-radius: 20px;
+  padding: 25px;
+  margin-bottom: 25px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
+}
+
+.legend-title {
+  color: white;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 20px;
+  text-align: center;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+.legend-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 15px;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 12px 16px;
+  border-radius: 15px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.legend-item:hover {
+  background: rgba(255, 255, 255, 0.2);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+}
+
+.legend-color {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  flex-shrink: 0;
+}
+
+.legend-text {
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-text strong {
+  font-weight: 700;
+  color: #FFE066;
 }
 
 /* RESTO DEL CSS IGUAL QUE ANTES */
@@ -909,8 +1081,21 @@ onUnmounted(() => {
 /* RESPONSIVE */
 @media (max-width: 480px) {
   .wheel-container {
-    width: 280px;
-    height: 280px;
+    width: 300px;
+    height: 300px;
+  }
+  
+  .legend-items {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  .legend-item {
+    padding: 10px 14px;
+  }
+  
+  .legend-text {
+    font-size: 13px;
   }
   
   .game-info h1 {
@@ -942,20 +1127,25 @@ onUnmounted(() => {
 
 @media (max-width: 360px) {
   .wheel-container {
-    width: 250px;
-    height: 250px;
+    width: 270px;
+    height: 270px;
   }
   
-  .prize-emoji {
-    font-size: 20px;
+  .center-button {
+    width: 80px;
+    height: 80px;
   }
   
-  .prize-text {
-    font-size: 10px;
+  .center-icon {
+    font-size: 30px;
   }
   
-  .prize-value {
-    font-size: 12px;
+  .prize-legend {
+    padding: 20px;
+  }
+  
+  .legend-title {
+    font-size: 16px;
   }
 }
 </style>
