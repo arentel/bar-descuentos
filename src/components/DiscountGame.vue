@@ -362,7 +362,7 @@ const startCountdown = () => {
   }, 1000);
 };
 
-// NUEVA LÓGICA DE GIRO CORREGIDA
+// LÓGICA DE GIRO CORREGIDA
 const spinWheel = async () => {
   if (!canPlay.value || isSpinning.value) return;
   
@@ -386,15 +386,24 @@ const spinWheel = async () => {
     
     // 3. Esperar a que termine la animación
     setTimeout(() => {
-      // 4. CALCULAR EN QUÉ SECCIÓN CAYÓ LA FLECHA
+      // 4. CALCULAR EN QUÉ SECCIÓN CAYÓ LA FLECHA - LÓGICA CORREGIDA
       const finalAngle = currentRotation.value % 360;
       
-      // La flecha apunta hacia arriba (0°), pero las secciones empiezan desde 0° y van en sentido horario
-      // Necesitamos normalizar el ángulo para saber en qué sección estamos
-      const normalizedAngle = (360 - finalAngle) % 360;
+      // CORRECCIÓN: La ruleta gira en sentido horario, pero las secciones SVG empiezan desde la parte superior
+      // La flecha apunta a 0° (arriba), necesitamos ajustar el cálculo
       
-      // Calcular el índice de la sección (cada sección tiene 60°)
-      const sectionIndex = Math.floor(normalizedAngle / sectionAngle);
+      // Convertir el ángulo final para que coincida con nuestras secciones
+      // Las secciones SVG empiezan en 0° y van en sentido horario
+      let adjustedAngle = finalAngle;
+      
+      // Si el ángulo es negativo, normalizarlo
+      if (adjustedAngle < 0) {
+        adjustedAngle += 360;
+      }
+      
+      // Calcular el índice de la sección
+      // Cada sección tiene 60° (360° / 6 secciones)
+      const sectionIndex = Math.floor(adjustedAngle / sectionAngle);
       
       // Asegurarse de que el índice esté dentro del rango válido
       const finalSectionIndex = Math.max(0, Math.min(sectionIndex, wheelSections.length - 1));
@@ -402,10 +411,12 @@ const spinWheel = async () => {
       // 5. OBTENER EL PREMIO CORRESPONDIENTE A ESA SECCIÓN
       const wonSection = wheelSections[finalSectionIndex];
       
-      console.log('🎯 Resultado calculado:', {
+      console.log('🎯 Resultado calculado (CORREGIDO):', {
+        currentRotation: currentRotation.value.toFixed(2),
         finalAngle: finalAngle.toFixed(2),
-        normalizedAngle: normalizedAngle.toFixed(2),
-        sectionIndex,
+        adjustedAngle: adjustedAngle.toFixed(2),
+        sectionAngleSize: sectionAngle,
+        calculatedSectionIndex: sectionIndex,
         finalSectionIndex,
         wonSection: {
           id: wonSection.id,
@@ -413,6 +424,11 @@ const spinWheel = async () => {
           value: wonSection.value,
           name: wonSection.name,
           color: wonSection.colors.primary
+        },
+        // Información adicional para debugging
+        sectionBoundaries: {
+          start: finalSectionIndex * sectionAngle,
+          end: (finalSectionIndex + 1) * sectionAngle
         }
       });
       
@@ -445,6 +461,19 @@ const spinWheel = async () => {
       canPlay.value = false;
       isSpinning.value = false;
       
+      // 10. Verificación adicional (solo para debugging)
+      console.log('🔍 Verificación visual:', {
+        'Sección 0 (10%)': '0° - 60°',
+        'Sección 1 (15%)': '60° - 120°', 
+        'Sección 2 (20%)': '120° - 180°',
+        'Sección 3 (25%)': '180° - 240°',
+        'Sección 4 (GRATIS)': '240° - 300°',
+        'Sección 5 (SIN PREMIO)': '300° - 360°',
+        'Ángulo actual': `${adjustedAngle.toFixed(2)}°`,
+        'Debería estar en sección': finalSectionIndex,
+        'Premio correspondiente': wonSection.value
+      });
+      
     }, 4000); // Esperar 4 segundos (duración de la animación)
     
   } catch (error) {
@@ -454,65 +483,88 @@ const spinWheel = async () => {
   }
 };
 
-// Función auxiliar para verificar el resultado (opcional, para debugging)
+// Función auxiliar para verificar el resultado (mejorada para debugging)
 const verifyResult = () => {
   const finalAngle = currentRotation.value % 360;
-  const normalizedAngle = (360 - finalAngle) % 360;
-  const sectionIndex = Math.floor(normalizedAngle / sectionAngle);
+  let adjustedAngle = finalAngle;
+  
+  if (adjustedAngle < 0) {
+    adjustedAngle += 360;
+  }
+  
+  const sectionIndex = Math.floor(adjustedAngle / sectionAngle);
   const finalSectionIndex = Math.max(0, Math.min(sectionIndex, wheelSections.length - 1));
   const section = wheelSections[finalSectionIndex];
   
-  console.log('🔍 Verificación:', {
+  console.log('🔍 Verificación detallada:', {
     currentRotation: currentRotation.value.toFixed(2),
     finalAngle: finalAngle.toFixed(2),
-    normalizedAngle: normalizedAngle.toFixed(2),
+    adjustedAngle: adjustedAngle.toFixed(2),
     sectionIndex,
     finalSectionIndex,
     sectionName: section.name,
     sectionValue: section.value,
-    sectionColor: section.colors.primary
+    sectionColor: section.colors.primary,
+    rangos: {
+      'Sección 0 (Rojo - 10%)': '0° - 60°',
+      'Sección 1 (Turquesa - 15%)': '60° - 120°',
+      'Sección 2 (Azul - 20%)': '120° - 180°',
+      'Sección 3 (Verde - 25%)': '180° - 240°',
+      'Sección 4 (Amarillo - GRATIS)': '240° - 300°',
+      'Sección 5 (Morado - SIN PREMIO)': '300° - 360°'
+    }
   });
   
   return section;
 };
 
-// Funciones de debug opcionales (para desarrollo)
+// Funciones de debug mejoradas
 const addDebugIndicators = () => {
-  // Solo para desarrollo - muestra líneas que dividen las secciones
+  removeDebugIndicators(); // Limpiar primero
+  
   const wheelContainer = document.querySelector('.wheel-container');
   if (!wheelContainer) return;
   
   for (let i = 0; i < wheelSections.length; i++) {
+    // Línea divisoria
     const line = document.createElement('div');
     line.className = 'debug-line';
-    line.style.position = 'absolute';
-    line.style.top = '50%';
-    line.style.left = '50%';
-    line.style.width = '2px';
-    line.style.height = '175px';
-    line.style.background = 'red';
-    line.style.transformOrigin = '0 0';
-    line.style.transform = `rotate(${i * sectionAngle}deg)`;
-    line.style.zIndex = '25';
-    line.style.pointerEvents = 'none';
+    line.style.cssText = `
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 3px;
+      height: 175px;
+      background: red;
+      transform-origin: 0 0;
+      transform: rotate(${i * sectionAngle}deg);
+      z-index: 25;
+      pointer-events: none;
+    `;
     wheelContainer.appendChild(line);
     
-    // Agregar texto con el índice de sección
+    // Etiqueta con información de la sección
     const label = document.createElement('div');
     label.className = 'debug-label';
-    label.textContent = `${i}: ${wheelSections[i].value}`;
-    label.style.position = 'absolute';
-    label.style.top = '30px';
-    label.style.left = '10px';
-    label.style.fontSize = '10px';
-    label.style.color = 'red';
-    label.style.background = 'white';
-    label.style.padding = '2px 4px';
-    label.style.transformOrigin = '0 0';
-    label.style.transform = `rotate(${i * sectionAngle + sectionAngle/2}deg) translateY(-140px)`;
-    label.style.zIndex = '25';
+    label.textContent = `${i}: ${wheelSections[i].value} (${(i * sectionAngle).toFixed(0)}°-${((i + 1) * sectionAngle).toFixed(0)}°)`;
+    label.style.cssText = `
+      position: absolute;
+      top: 20px;
+      left: 20px;
+      font-size: 10px;
+      color: red;
+      background: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      transform-origin: 0 0;
+      transform: rotate(${i * sectionAngle + sectionAngle/2}deg) translateY(-130px);
+      z-index: 25;
+      white-space: nowrap;
+    `;
     wheelContainer.appendChild(label);
   }
+  
+  console.log('🔧 Indicadores de debug añadidos');
 };
 
 const removeDebugIndicators = () => {
@@ -524,15 +576,23 @@ const showDetailedResult = () => {
   const result = verifyResult();
   
   const info = `
-🎯 RESULTADO DETALLADO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📐 Rotación total: ${currentRotation.value.toFixed(2)}°
-📐 Ángulo final: ${(currentRotation.value % 360).toFixed(2)}°
-📐 Ángulo normalizado: ${((360 - (currentRotation.value % 360)) % 360).toFixed(2)}°
-📍 Índice de sección: ${Math.floor(((360 - (currentRotation.value % 360)) % 360) / sectionAngle)}
-🎁 Premio obtenido: ${result.value}
-🎨 Color: ${result.colors.primary}
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎯 ANÁLISIS DETALLADO DEL RESULTADO:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+📐 Rotación total acumulada: ${currentRotation.value.toFixed(2)}°
+📐 Ángulo final (después del módulo): ${(currentRotation.value % 360).toFixed(2)}°
+📍 Sección detectada: ${Math.floor((currentRotation.value % 360) / sectionAngle)}
+🎁 Premio correspondiente: ${result.value}
+🎨 Color de la sección: ${result.colors.primary}
+🏷️  Nombre del premio: ${result.name}
+
+📊 MAPA DE SECCIONES:
+   • Sección 0: 0° - 60°   → Rojo (10% descuento)
+   • Sección 1: 60° - 120° → Turquesa (15% descuento)
+   • Sección 2: 120° - 180° → Azul (20% descuento)
+   • Sección 3: 180° - 240° → Verde (25% descuento)
+   • Sección 4: 240° - 300° → Amarillo (Bebida gratis)
+   • Sección 5: 300° - 360° → Morado (Sin premio)
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
   `;
   
   console.log(info);
@@ -544,6 +604,7 @@ const resetGame = () => {
   gameResult.value = null;
   isSpinning.value = false;
   currentRotation.value = 0;
+  removeDebugIndicators(); // Limpiar debug si existe
   checkGameState();
 };
 
@@ -582,15 +643,17 @@ const formatExpiryTime = (playTimestamp) => {
 // Lifecycle hooks
 onMounted(() => {
   console.log('🚀 Juego de descuentos iniciado');
-  console.log('📋 Secciones configuradas:', wheelSections.map(s => ({
+  console.log('📋 Secciones configuradas:', wheelSections.map((s, i) => ({
+    indice: i,
     id: s.id, 
     value: s.value, 
-    color: s.colors.primary
+    color: s.colors.primary,
+    rango: `${i * sectionAngle}° - ${(i + 1) * sectionAngle}°`
   })));
   
   checkGameState();
   
-  // Descomentar la siguiente línea si quieres ver las líneas de debug
+  // Para development: descomentar la siguiente línea para ver las divisiones
   // addDebugIndicators();
 });
 
@@ -601,14 +664,23 @@ onUnmounted(() => {
   removeDebugIndicators();
 });
 
-// Exponer funciones de debug globalmente (opcional, solo para desarrollo)
+// Exponer funciones de debug globalmente (solo para desarrollo)
 if (process.env.NODE_ENV === 'development') {
   window.debugWheel = {
     verify: verifyResult,
     showResult: showDetailedResult,
     addLines: addDebugIndicators,
-    removeLines: removeDebugIndicators
+    removeLines: removeDebugIndicators,
+    currentAngle: () => currentRotation.value % 360,
+    sectionMap: () => wheelSections.map((s, i) => ({
+      index: i,
+      range: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`,
+      value: s.value,
+      color: s.colors.primary
+    }))
   };
+  
+  console.log('🔧 Funciones de debug disponibles en window.debugWheel');
 }
 </script>
 
