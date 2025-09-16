@@ -314,6 +314,163 @@ const getSectionPath = (index) => {
   return `M ${x1} ${y1} L ${x2} ${y2} A ${radius} ${radius} 0 ${largeArc} 1 ${x3} ${y3} L ${x4} ${y4} A ${innerRadius} ${innerRadius} 0 ${largeArc} 0 ${x1} ${y1}`;
 };
 
+// FUNCIÓN PRINCIPAL: "OJOS" QUE LEEN LA POSICIÓN VISUAL
+const readVisualPosition = () => {
+  // Obtener ángulo actual de la ruleta
+  const currentAngle = currentRotation.value % 360;
+  
+  // Normalizar ángulo (asegurar que esté entre 0-360)
+  const normalizedAngle = currentAngle >= 0 ? currentAngle : currentAngle + 360;
+  
+  console.log('👀 Leyendo posición visual:', {
+    rotacionTotal: currentRotation.value,
+    anguloNormalizado: normalizedAngle.toFixed(2)
+  });
+  
+  // CREAR MAPA VISUAL DE SECCIONES
+  // La flecha apunta hacia arriba (0°), las secciones se distribuyen así:
+  const sectionMap = [
+    { startAngle: 0,   endAngle: 60,  section: wheelSections[0] },   // Rojo 10%
+    { startAngle: 60,  endAngle: 120, section: wheelSections[1] },   // Turquesa 15%
+    { startAngle: 120, endAngle: 180, section: wheelSections[2] },   // Azul 20%
+    { startAngle: 180, endAngle: 240, section: wheelSections[3] },   // Verde 25%
+    { startAngle: 240, endAngle: 300, section: wheelSections[4] },   // Amarillo GRATIS
+    { startAngle: 300, endAngle: 360, section: wheelSections[5] }    // Morado SIN PREMIO
+  ];
+  
+  // LEER DÓNDE ESTÁ APUNTANDO LA FLECHA
+  let detectedSection = null;
+  
+  for (const mapping of sectionMap) {
+    if (normalizedAngle >= mapping.startAngle && normalizedAngle < mapping.endAngle) {
+      detectedSection = mapping;
+      break;
+    }
+  }
+  
+  // Caso especial para el límite 360°/0°
+  if (!detectedSection && normalizedAngle >= 0 && normalizedAngle < 360) {
+    detectedSection = sectionMap[0]; // Default a la primera sección
+  }
+  
+  if (!detectedSection) {
+    console.error('❌ Error en lectura visual: No se pudo determinar la sección');
+    detectedSection = sectionMap[0]; // Fallback
+  }
+  
+  console.log('📖 Resultado de lectura visual:', {
+    anguloLeido: normalizedAngle.toFixed(2),
+    rangoDetectado: `${detectedSection.startAngle}° - ${detectedSection.endAngle}°`,
+    seccionDetectada: detectedSection.section.value,
+    colorDetectado: detectedSection.section.colors.primary,
+    validacion: `${normalizedAngle.toFixed(2)}° está en rango ${detectedSection.startAngle}°-${detectedSection.endAngle}°`
+  });
+  
+  return {
+    angle: normalizedAngle,
+    section: detectedSection.section,
+    range: `${detectedSection.startAngle}° - ${detectedSection.endAngle}°`,
+    isValid: true
+  };
+};
+
+// SISTEMA DE "OJOS" - LEE VISUALMENTE DÓNDE QUEDÓ LA FLECHA
+const spinWheel = async () => {
+  if (!canPlay.value || isSpinning.value) return;
+  
+  console.log('🎯 Iniciando giro con lectura visual...');
+  isSpinning.value = true;
+
+  try {
+    // PASO 1: GENERAR GIRO COMPLETAMENTE ALEATORIO
+    const extraSpins = 5 + Math.random() * 5;
+    const randomAngle = Math.random() * 360;
+    const totalRotation = (extraSpins * 360) + randomAngle;
+    
+    console.log('🔄 Giro aleatorio generado:', {
+      extraSpins: extraSpins.toFixed(2),
+      randomAngle: randomAngle.toFixed(2),
+      totalRotation: totalRotation.toFixed(2)
+    });
+    
+    // PASO 2: APLICAR ROTACIÓN
+    currentRotation.value += totalRotation;
+    
+    // PASO 3: ESPERAR A QUE TERMINE LA ANIMACIÓN
+    setTimeout(() => {
+      // PASO 4: AQUÍ EMPIEZAN LOS "OJOS" - LEER POSICIÓN VISUAL
+      const visualReading = readVisualPosition();
+      
+      console.log('👁️ Lectura visual realizada:', visualReading);
+      
+      // PASO 5: OTORGAR EL PREMIO BASADO EN LA LECTURA VISUAL
+      const wonPrize = {
+        id: visualReading.section.id,
+        discount: visualReading.section.discount,
+        name: visualReading.section.name,
+        emoji: visualReading.section.emoji
+      };
+      
+      // PASO 6: GENERAR CÓDIGO Y FINALIZAR
+      const discountCode = GameLogic.generateDiscountCode(wonPrize);
+      
+      console.log('🏆 Premio otorgado basado en lectura visual:', {
+        lectura: `Flecha apunta a ${visualReading.angle.toFixed(2)}°`,
+        seccionDetectada: visualReading.section.value,
+        colorDetectado: visualReading.section.colors.primary,
+        premioOtorgado: wonPrize.name
+      });
+      
+      // Guardar y mostrar resultado
+      GameLogic.saveGameResult(wonPrize, discountCode);
+      
+      gameResult.value = {
+        ...wonPrize,
+        discountCode,
+        timestamp: new Date()
+      };
+      
+      canPlay.value = false;
+      isSpinning.value = false;
+      
+    }, 4000);
+    
+  } catch (error) {
+    console.error('❌ Error en el sistema visual:', error);
+    isSpinning.value = false;
+    resetGame();
+  }
+};
+
+// FUNCIÓN DE CALIBRACIÓN - Para verificar que los "ojos" funcionan bien
+const calibrateVisualSystem = () => {
+  console.log('🔧 Calibrando sistema visual...');
+  
+  // Probar cada sección
+  const testAngles = [30, 90, 150, 210, 270, 330]; // Centro de cada sección
+  
+  testAngles.forEach((testAngle, index) => {
+    // Simular posición
+    const originalRotation = currentRotation.value;
+    currentRotation.value = testAngle;
+    
+    // Leer con los "ojos"
+    const reading = readVisualPosition();
+    
+    console.log(`🧪 Test ángulo ${testAngle}°:`, {
+      anguloTest: testAngle,
+      seccionEsperada: wheelSections[index].value,
+      seccionDetectada: reading.section.value,
+      coincide: reading.section.value === wheelSections[index].value ? '✅' : '❌'
+    });
+    
+    // Restaurar posición original
+    currentRotation.value = originalRotation;
+  });
+  
+  console.log('🔧 Calibración completada');
+};
+
 // Computed properties
 const availablePrizes = computed(() => 
   wheelSections.filter(section => section.discount > 0)
@@ -362,136 +519,10 @@ const startCountdown = () => {
   }, 1000);
 };
 
-// NUEVA LÓGICA DETERMINÍSTICA - 100% PRECISA SIN DESAJUSTES
-const spinWheel = async () => {
-  if (!canPlay.value || isSpinning.value) return;
-  
-  console.log('🎯 Iniciando juego determinístico...');
-  isSpinning.value = true;
-
-  try {
-    // PASO 1: SELECCIONAR PREMIO ALEATORIAMENTE PRIMERO
-    const randomSectionIndex = Math.floor(Math.random() * wheelSections.length);
-    const targetSection = wheelSections[randomSectionIndex];
-    
-    console.log('🎲 Premio predeterminado:', {
-      sectionIndex: randomSectionIndex,
-      section: targetSection,
-      color: targetSection.colors.primary,
-      value: targetSection.value
-    });
-    
-    // PASO 2: CALCULAR A QUÉ ÁNGULO DEBE APUNTAR LA FLECHA
-    // Para que la flecha apunte al centro de esta sección
-    const sectionCenterAngle = (randomSectionIndex * sectionAngle) + (sectionAngle / 2);
-    
-    console.log('📐 Ángulo objetivo calculado:', {
-      sectionIndex: randomSectionIndex,
-      sectionAngle: sectionAngle,
-      centerAngle: sectionCenterAngle,
-      range: `${randomSectionIndex * sectionAngle}° - ${(randomSectionIndex + 1) * sectionAngle}°`
-    });
-    
-    // PASO 3: CALCULAR LA ROTACIÓN NECESARIA
-    // Vueltas extra para hacer la animación realista
-    const extraSpins = 5 + Math.random() * 3;
-    
-    // CLAVE: En lugar de acumular, establecemos una rotación absoluta
-    // que haga que la flecha quede exactamente en el centro de la sección objetivo
-    const targetRotation = (extraSpins * 360) + sectionCenterAngle;
-    
-    console.log('🔄 Rotación calculada:', {
-      extraSpins: extraSpins.toFixed(2),
-      sectionCenterAngle,
-      targetRotation: targetRotation.toFixed(2)
-    });
-    
-    // PASO 4: APLICAR LA ROTACIÓN ABSOLUTA (NO ACUMULATIVA)
-    currentRotation.value = targetRotation;
-    
-    // PASO 5: ESPERAR A QUE TERMINE LA ANIMACIÓN
-    setTimeout(() => {
-      // PASO 6: VERIFICAR QUE LA FLECHA APUNTA DONDE DEBE (Solo para logging)
-      const finalAngle = currentRotation.value % 360;
-      const detectedSectionIndex = Math.floor(finalAngle / sectionAngle);
-      const detectedSection = wheelSections[detectedSectionIndex] || targetSection;
-      
-      console.log('✅ Verificación determinística:', {
-        finalAngle: finalAngle.toFixed(2),
-        detectedSectionIndex,
-        targetSectionIndex: randomSectionIndex,
-        match: detectedSectionIndex === randomSectionIndex,
-        detectedSection: detectedSection.value,
-        targetSection: targetSection.value,
-        RESULTADO: detectedSectionIndex === randomSectionIndex ? 'CORRECTO ✅' : 'FORZANDO CORRECCIÓN ✅'
-      });
-      
-      // PASO 7: CREAR PREMIO BASADO EN LA SECCIÓN PREDETERMINADA (SIEMPRE CORRECTO)
-      const wonPrize = {
-        id: targetSection.id,
-        discount: targetSection.discount,
-        name: targetSection.name,
-        emoji: targetSection.emoji
-      };
-      
-      // PASO 8: GENERAR CÓDIGO Y MOSTRAR RESULTADO
-      const discountCode = GameLogic.generateDiscountCode(wonPrize);
-      
-      console.log('💳 Premio final determinístico:', {
-        wonPrize,
-        discountCode,
-        garantia: 'PREMIO PREDETERMINADO - SIN ERRORES POSIBLES'
-      });
-      
-      // Guardar y mostrar resultado
-      GameLogic.saveGameResult(wonPrize, discountCode);
-      
-      gameResult.value = {
-        ...wonPrize,
-        discountCode,
-        timestamp: new Date()
-      };
-      
-      canPlay.value = false;
-      isSpinning.value = false;
-      
-    }, 4000);
-    
-  } catch (error) {
-    console.error('❌ Error en el juego determinístico:', error);
-    isSpinning.value = false;
-    resetGame();
-  }
-};
-
-// Función de debug para verificar posiciones
-const debugCurrentPosition = () => {
-  const finalAngle = currentRotation.value % 360;
-  const sectionIndex = Math.floor(finalAngle / sectionAngle);
-  const section = wheelSections[sectionIndex];
-  
-  console.log('🔍 Estado actual de la ruleta:', {
-    rotacionTotal: currentRotation.value.toFixed(2),
-    anguloFinal: finalAngle.toFixed(2),
-    seccionDetectada: sectionIndex,
-    premioCorrespondiente: section ? section.value : 'INDEFINIDO',
-    colorCorrespondiente: section ? section.colors.primary : 'INDEFINIDO',
-    mapaCompleto: wheelSections.map((s, i) => ({
-      indice: i,
-      rango: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`,
-      premio: s.value,
-      color: s.colors.primary
-    }))
-  });
-  
-  return section;
-};
-
 // Resto de funciones existentes
 const resetGame = () => {
   gameResult.value = null;
   isSpinning.value = false;
-  // NOTA: NO reseteamos currentRotation para mantener la posición visual
   checkGameState();
 };
 
@@ -529,15 +560,18 @@ const formatExpiryTime = (playTimestamp) => {
 
 // Lifecycle hooks
 onMounted(() => {
-  console.log('🚀 Juego determinístico iniciado');
-  console.log('📋 Secciones configuradas:', wheelSections.map((s, i) => ({
+  console.log('🚀 Sistema visual de ruleta iniciado');
+  console.log('📋 Mapa de secciones visuales:', wheelSections.map((s, i) => ({
     indice: i,
     premio: s.value,
     color: s.colors.primary,
-    rango: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`
+    rango: `${i * 60}°-${(i + 1) * 60}°`
   })));
   
   checkGameState();
+  
+  // Calibrar el sistema al inicio (opcional)
+  // calibrateVisualSystem();
 });
 
 onUnmounted(() => {
@@ -546,31 +580,19 @@ onUnmounted(() => {
   }
 });
 
-// Debug functions (solo para desarrollo)
+// Debug functions
 if (process.env.NODE_ENV === 'development') {
   window.debugWheel = {
-    currentPosition: debugCurrentPosition,
-    sectionMap: () => wheelSections.map((s, i) => ({
-      index: i,
-      range: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`,
-      value: s.value,
-      color: s.colors.primary
-    })),
-    simulateWin: (sectionIndex) => {
-      if (sectionIndex >= 0 && sectionIndex < wheelSections.length) {
-        const targetSection = wheelSections[sectionIndex];
-        const sectionCenterAngle = (sectionIndex * sectionAngle) + (sectionAngle / 2);
-        currentRotation.value = sectionCenterAngle;
-        console.log(`🎯 Simulando victoria en sección ${sectionIndex}: ${targetSection.value}`);
-      }
+    readCurrent: readVisualPosition,
+    calibrate: calibrateVisualSystem,
+    testAngle: (angle) => {
+      const original = currentRotation.value;
+      currentRotation.value = angle;
+      const result = readVisualPosition();
+      currentRotation.value = original;
+      return result;
     }
   };
-  
-  console.log('🔧 Funciones de debug:', {
-    'debugWheel.currentPosition()': 'Ver posición actual',
-    'debugWheel.sectionMap()': 'Ver mapa completo',
-    'debugWheel.simulateWin(index)': 'Simular victoria en sección específica'
-  });
 }
 </script>
 
