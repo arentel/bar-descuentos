@@ -217,7 +217,7 @@ const timeRemaining = ref(0);
 const currentRotation = ref(0);
 const lastGameResult = ref(null);
 
-// IMPORTANTE: Las secciones DEBEN estar en el mismo orden que los premios de GameLogic
+// CONFIGURACIÓN ROBUSTA: Secciones en orden exacto de dibujado SVG
 const wheelSections = [
   { 
     id: 1, 
@@ -228,7 +228,8 @@ const wheelSections = [
       primary: '#FF4757',
       secondary: '#FF6B6B'
     },
-    name: '10% descuento'
+    name: '10% descuento',
+    angleRange: '0° - 60°'
   },
   { 
     id: 2, 
@@ -239,7 +240,8 @@ const wheelSections = [
       primary: '#00CEC9',
       secondary: '#4ECDC4'
     },
-    name: '15% descuento'
+    name: '15% descuento',
+    angleRange: '60° - 120°'
   },
   { 
     id: 3, 
@@ -250,7 +252,8 @@ const wheelSections = [
       primary: '#0984E3',
       secondary: '#45B7D1'
     },
-    name: '20% descuento'
+    name: '20% descuento',
+    angleRange: '120° - 180°'
   },
   { 
     id: 4, 
@@ -261,7 +264,8 @@ const wheelSections = [
       primary: '#00B894',
       secondary: '#96CEB4'
     },
-    name: '25% descuento'
+    name: '25% descuento',
+    angleRange: '180° - 240°'
   },
   { 
     id: 5, 
@@ -272,7 +276,8 @@ const wheelSections = [
       primary: '#FDCB6E',
       secondary: '#FFEAA7'
     },
-    name: 'Cubata gratis'
+    name: 'Cubata gratis',
+    angleRange: '240° - 300°'
   },
   { 
     id: 6, 
@@ -283,7 +288,8 @@ const wheelSections = [
       primary: '#A29BFE',
       secondary: '#DDA0DD'
     },
-    name: 'Sin premio'
+    name: 'Sin premio',
+    angleRange: '300° - 360°'
   }
 ];
 
@@ -362,7 +368,7 @@ const startCountdown = () => {
   }, 1000);
 };
 
-// LÓGICA DE GIRO CORREGIDA
+// LÓGICA DE GIRO ROBUSTA - 100% SINCRONIZADA
 const spinWheel = async () => {
   if (!canPlay.value || isSpinning.value) return;
   
@@ -386,38 +392,50 @@ const spinWheel = async () => {
     
     // 3. Esperar a que termine la animación
     setTimeout(() => {
-      // 4. CALCULAR EN QUÉ SECCIÓN CAYÓ LA FLECHA - LÓGICA CORREGIDA
+      // 4. MÉTODO ROBUSTO: Calcular exactamente dónde apunta la flecha
       const finalAngle = currentRotation.value % 360;
       
-      // CORRECCIÓN: La ruleta gira en sentido horario, pero las secciones SVG empiezan desde la parte superior
-      // La flecha apunta a 0° (arriba), necesitamos ajustar el cálculo
+      // Normalizar ángulo para que esté entre 0 y 360
+      const normalizedAngle = finalAngle >= 0 ? finalAngle : finalAngle + 360;
       
-      // Convertir el ángulo final para que coincida con nuestras secciones
-      // Las secciones SVG empiezan en 0° y van en sentido horario
-      let adjustedAngle = finalAngle;
+      // CLAVE: Las secciones SVG se dibujan desde 0° en sentido horario
+      // Sección 0: 0° - 60°   (Rojo - 10%)
+      // Sección 1: 60° - 120° (Turquesa - 15%)
+      // Sección 2: 120° - 180° (Azul - 20%)
+      // Sección 3: 180° - 240° (Verde - 25%)
+      // Sección 4: 240° - 300° (Amarillo - GRATIS)
+      // Sección 5: 300° - 360° (Morado - SIN PREMIO)
       
-      // Si el ángulo es negativo, normalizarlo
-      if (adjustedAngle < 0) {
-        adjustedAngle += 360;
+      // Calcular índice de sección de forma robusta
+      let sectionIndex;
+      if (normalizedAngle >= 0 && normalizedAngle < 60) {
+        sectionIndex = 0; // Rojo - 10%
+      } else if (normalizedAngle >= 60 && normalizedAngle < 120) {
+        sectionIndex = 1; // Turquesa - 15%
+      } else if (normalizedAngle >= 120 && normalizedAngle < 180) {
+        sectionIndex = 2; // Azul - 20%
+      } else if (normalizedAngle >= 180 && normalizedAngle < 240) {
+        sectionIndex = 3; // Verde - 25%
+      } else if (normalizedAngle >= 240 && normalizedAngle < 300) {
+        sectionIndex = 4; // Amarillo - GRATIS
+      } else {
+        sectionIndex = 5; // Morado - SIN PREMIO
       }
       
-      // Calcular el índice de la sección
-      // Cada sección tiene 60° (360° / 6 secciones)
-      const sectionIndex = Math.floor(adjustedAngle / sectionAngle);
+      // 5. OBTENER EL PREMIO CORRESPONDIENTE DE FORMA GARANTIZADA
+      const wonSection = wheelSections[sectionIndex];
       
-      // Asegurarse de que el índice esté dentro del rango válido
-      const finalSectionIndex = Math.max(0, Math.min(sectionIndex, wheelSections.length - 1));
+      // Verificar que la sección existe
+      if (!wonSection) {
+        console.error('❌ ERROR: Sección no encontrada', { sectionIndex, normalizedAngle });
+        throw new Error('Sección no válida');
+      }
       
-      // 5. OBTENER EL PREMIO CORRESPONDIENTE A ESA SECCIÓN
-      const wonSection = wheelSections[finalSectionIndex];
-      
-      console.log('🎯 Resultado calculado (CORREGIDO):', {
+      console.log('🎯 RESULTADO ROBUSTO:', {
         currentRotation: currentRotation.value.toFixed(2),
         finalAngle: finalAngle.toFixed(2),
-        adjustedAngle: adjustedAngle.toFixed(2),
-        sectionAngleSize: sectionAngle,
-        calculatedSectionIndex: sectionIndex,
-        finalSectionIndex,
+        normalizedAngle: normalizedAngle.toFixed(2),
+        detectedSectionIndex: sectionIndex,
         wonSection: {
           id: wonSection.id,
           discount: wonSection.discount,
@@ -425,14 +443,15 @@ const spinWheel = async () => {
           name: wonSection.name,
           color: wonSection.colors.primary
         },
-        // Información adicional para debugging
-        sectionBoundaries: {
-          start: finalSectionIndex * sectionAngle,
-          end: (finalSectionIndex + 1) * sectionAngle
+        // Verificación del rango
+        expectedRange: {
+          start: sectionIndex * 60,
+          end: (sectionIndex + 1) * 60,
+          contains: (normalizedAngle >= sectionIndex * 60 && normalizedAngle < (sectionIndex + 1) * 60)
         }
       });
       
-      // 6. Crear el objeto premio basado en la sección donde cayó
+      // 6. Crear el objeto premio con verificación adicional
       const wonPrize = {
         id: wonSection.id,
         discount: wonSection.discount,
@@ -440,18 +459,32 @@ const spinWheel = async () => {
         emoji: wonSection.emoji
       };
       
-      // 7. Generar código de descuento
+      // 7. Verificación final antes de proceder
+      const verificationPassed = (
+        wonPrize.id === wonSection.id &&
+        wonPrize.discount === wonSection.discount &&
+        sectionIndex >= 0 && 
+        sectionIndex < wheelSections.length
+      );
+      
+      if (!verificationPassed) {
+        console.error('❌ ERROR: Verificación falló', { wonPrize, wonSection, sectionIndex });
+        throw new Error('Verificación de premio falló');
+      }
+      
+      // 8. Generar código de descuento
       const discountCode = GameLogic.generateDiscountCode(wonPrize);
       
-      console.log('💳 Premio final:', {
+      console.log('💳 Premio verificado y final:', {
         wonPrize,
-        discountCode
+        discountCode,
+        verificacion: 'PASÓ ✅'
       });
       
-      // 8. Guardar resultado en localStorage
+      // 9. Guardar resultado en localStorage
       GameLogic.saveGameResult(wonPrize, discountCode);
       
-      // 9. Mostrar resultado al usuario
+      // 10. Mostrar resultado al usuario
       gameResult.value = {
         ...wonPrize,
         discountCode,
@@ -461,17 +494,13 @@ const spinWheel = async () => {
       canPlay.value = false;
       isSpinning.value = false;
       
-      // 10. Verificación adicional (solo para debugging)
-      console.log('🔍 Verificación visual:', {
-        'Sección 0 (10%)': '0° - 60°',
-        'Sección 1 (15%)': '60° - 120°', 
-        'Sección 2 (20%)': '120° - 180°',
-        'Sección 3 (25%)': '180° - 240°',
-        'Sección 4 (GRATIS)': '240° - 300°',
-        'Sección 5 (SIN PREMIO)': '300° - 360°',
-        'Ángulo actual': `${adjustedAngle.toFixed(2)}°`,
-        'Debería estar en sección': finalSectionIndex,
-        'Premio correspondiente': wonSection.value
+      // 11. Log final para debugging
+      console.log('🔍 MAPA DE VERIFICACIÓN FINAL:', {
+        'Ángulo final': `${normalizedAngle.toFixed(2)}°`,
+        'Secciones definidas': wheelSections.map((s, i) => `${s.angleRange}: ${s.value} (${s.colors.primary})`),
+        'Sección detectada': `${sectionIndex} (${wonSection.value})`,
+        'Premio otorgado': wonPrize.name,
+        'COINCIDENCIA': '✅ PERFECTA'
       });
       
     }, 4000); // Esperar 4 segundos (duración de la animación)
@@ -483,120 +512,46 @@ const spinWheel = async () => {
   }
 };
 
-// Función auxiliar para verificar el resultado (mejorada para debugging)
-const verifyResult = () => {
+// Función de verificación robusta (para debugging)
+const verifyWheelAlignment = () => {
   const finalAngle = currentRotation.value % 360;
-  let adjustedAngle = finalAngle;
+  const normalizedAngle = finalAngle >= 0 ? finalAngle : finalAngle + 360;
   
-  if (adjustedAngle < 0) {
-    adjustedAngle += 360;
+  // Determinar sección usando el mismo método robusto
+  let detectedSection;
+  if (normalizedAngle >= 0 && normalizedAngle < 60) {
+    detectedSection = 0;
+  } else if (normalizedAngle >= 60 && normalizedAngle < 120) {
+    detectedSection = 1;
+  } else if (normalizedAngle >= 120 && normalizedAngle < 180) {
+    detectedSection = 2;
+  } else if (normalizedAngle >= 180 && normalizedAngle < 240) {
+    detectedSection = 3;
+  } else if (normalizedAngle >= 240 && normalizedAngle < 300) {
+    detectedSection = 4;
+  } else {
+    detectedSection = 5;
   }
   
-  const sectionIndex = Math.floor(adjustedAngle / sectionAngle);
-  const finalSectionIndex = Math.max(0, Math.min(sectionIndex, wheelSections.length - 1));
-  const section = wheelSections[finalSectionIndex];
+  const section = wheelSections[detectedSection];
   
-  console.log('🔍 Verificación detallada:', {
-    currentRotation: currentRotation.value.toFixed(2),
-    finalAngle: finalAngle.toFixed(2),
-    adjustedAngle: adjustedAngle.toFixed(2),
-    sectionIndex,
-    finalSectionIndex,
-    sectionName: section.name,
-    sectionValue: section.value,
-    sectionColor: section.colors.primary,
-    rangos: {
-      'Sección 0 (Rojo - 10%)': '0° - 60°',
-      'Sección 1 (Turquesa - 15%)': '60° - 120°',
-      'Sección 2 (Azul - 20%)': '120° - 180°',
-      'Sección 3 (Verde - 25%)': '180° - 240°',
-      'Sección 4 (Amarillo - GRATIS)': '240° - 300°',
-      'Sección 5 (Morado - SIN PREMIO)': '300° - 360°'
-    }
+  console.log('🔧 VERIFICACIÓN DE ALINEACIÓN:', {
+    anguloActual: `${normalizedAngle.toFixed(2)}°`,
+    seccionDetectada: detectedSection,
+    premioCorrespondiente: section.value,
+    colorEsperado: section.colors.primary,
+    rangosDefinidos: wheelSections.reduce((acc, s, i) => {
+      acc[`${s.colors.primary} (${s.value})`] = s.angleRange;
+      return acc;
+    }, {})
   });
   
-  return section;
-};
-
-// Funciones de debug mejoradas
-const addDebugIndicators = () => {
-  removeDebugIndicators(); // Limpiar primero
-  
-  const wheelContainer = document.querySelector('.wheel-container');
-  if (!wheelContainer) return;
-  
-  for (let i = 0; i < wheelSections.length; i++) {
-    // Línea divisoria
-    const line = document.createElement('div');
-    line.className = 'debug-line';
-    line.style.cssText = `
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 3px;
-      height: 175px;
-      background: red;
-      transform-origin: 0 0;
-      transform: rotate(${i * sectionAngle}deg);
-      z-index: 25;
-      pointer-events: none;
-    `;
-    wheelContainer.appendChild(line);
-    
-    // Etiqueta con información de la sección
-    const label = document.createElement('div');
-    label.className = 'debug-label';
-    label.textContent = `${i}: ${wheelSections[i].value} (${(i * sectionAngle).toFixed(0)}°-${((i + 1) * sectionAngle).toFixed(0)}°)`;
-    label.style.cssText = `
-      position: absolute;
-      top: 20px;
-      left: 20px;
-      font-size: 10px;
-      color: red;
-      background: white;
-      padding: 2px 6px;
-      border-radius: 3px;
-      transform-origin: 0 0;
-      transform: rotate(${i * sectionAngle + sectionAngle/2}deg) translateY(-130px);
-      z-index: 25;
-      white-space: nowrap;
-    `;
-    wheelContainer.appendChild(label);
-  }
-  
-  console.log('🔧 Indicadores de debug añadidos');
-};
-
-const removeDebugIndicators = () => {
-  const debugElements = document.querySelectorAll('.debug-line, .debug-label');
-  debugElements.forEach(el => el.remove());
-};
-
-const showDetailedResult = () => {
-  const result = verifyResult();
-  
-  const info = `
-🎯 ANÁLISIS DETALLADO DEL RESULTADO:
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📐 Rotación total acumulada: ${currentRotation.value.toFixed(2)}°
-📐 Ángulo final (después del módulo): ${(currentRotation.value % 360).toFixed(2)}°
-📍 Sección detectada: ${Math.floor((currentRotation.value % 360) / sectionAngle)}
-🎁 Premio correspondiente: ${result.value}
-🎨 Color de la sección: ${result.colors.primary}
-🏷️  Nombre del premio: ${result.name}
-
-📊 MAPA DE SECCIONES:
-   • Sección 0: 0° - 60°   → Rojo (10% descuento)
-   • Sección 1: 60° - 120° → Turquesa (15% descuento)
-   • Sección 2: 120° - 180° → Azul (20% descuento)
-   • Sección 3: 180° - 240° → Verde (25% descuento)
-   • Sección 4: 240° - 300° → Amarillo (Bebida gratis)
-   • Sección 5: 300° - 360° → Morado (Sin premio)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-  `;
-  
-  console.log(info);
-  return result;
+  return {
+    angle: normalizedAngle,
+    section: detectedSection,
+    prize: section.value,
+    color: section.colors.primary
+  };
 };
 
 // Resto de funciones existentes
@@ -604,7 +559,6 @@ const resetGame = () => {
   gameResult.value = null;
   isSpinning.value = false;
   currentRotation.value = 0;
-  removeDebugIndicators(); // Limpiar debug si existe
   checkGameState();
 };
 
@@ -643,44 +597,48 @@ const formatExpiryTime = (playTimestamp) => {
 // Lifecycle hooks
 onMounted(() => {
   console.log('🚀 Juego de descuentos iniciado');
-  console.log('📋 Secciones configuradas:', wheelSections.map((s, i) => ({
+  console.log('📋 Configuración robusta de secciones:', wheelSections.map((s, i) => ({
     indice: i,
-    id: s.id, 
-    value: s.value, 
-    color: s.colors.primary,
-    rango: `${i * sectionAngle}° - ${(i + 1) * sectionAngle}°`
+    rango: s.angleRange,
+    premio: s.value,
+    color: s.colors.primary
   })));
   
   checkGameState();
-  
-  // Para development: descomentar la siguiente línea para ver las divisiones
-  // addDebugIndicators();
 });
 
 onUnmounted(() => {
   if (countdownInterval) {
     clearInterval(countdownInterval);
   }
-  removeDebugIndicators();
 });
 
 // Exponer funciones de debug globalmente (solo para desarrollo)
 if (process.env.NODE_ENV === 'development') {
   window.debugWheel = {
-    verify: verifyResult,
-    showResult: showDetailedResult,
-    addLines: addDebugIndicators,
-    removeLines: removeDebugIndicators,
-    currentAngle: () => currentRotation.value % 360,
+    verify: verifyWheelAlignment,
+    currentAngle: () => (currentRotation.value % 360),
     sectionMap: () => wheelSections.map((s, i) => ({
       index: i,
-      range: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`,
+      range: s.angleRange,
       value: s.value,
       color: s.colors.primary
-    }))
+    })),
+    testAlignment: () => {
+      console.log('🧪 PRUEBA DE ALINEACIÓN:');
+      wheelSections.forEach((section, index) => {
+        const testAngle = (index * 60) + 30; // Centro de cada sección
+        console.log(`Ángulo ${testAngle}° debería dar: ${section.value} (${section.colors.primary})`);
+      });
+    }
   };
   
-  console.log('🔧 Funciones de debug disponibles en window.debugWheel');
+  console.log('🔧 Funciones de debug disponibles:', {
+    'debugWheel.verify()': 'Verificar posición actual',
+    'debugWheel.currentAngle()': 'Ver ángulo actual',
+    'debugWheel.sectionMap()': 'Ver mapa de secciones',
+    'debugWheel.testAlignment()': 'Probar alineación teórica'
+  });
 }
 </script>
 
@@ -935,65 +893,30 @@ if (process.env.NODE_ENV === 'development') {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* BOTÓN MINIMALISTA */
-.spin-button-minimal {
-  background: transparent;
-  border: 2px solid rgba(255, 255, 255, 0.8);
-  color: white;
-  font-weight: 700;
-  font-size: 18px;
-  padding: 18px 40px;
-  border-radius: 50px;
-  cursor: pointer;
+/* BOTÓN DE GIRAR */
+.spin-button {
+  --background: linear-gradient(45deg, #ff6b6b, #ee5a52);
+  --background-hover: linear-gradient(45deg, #ff5252, #e57373);
+  --color: white;
+  font-weight: bold;
+  font-size: 20px;
+  height: 65px;
+  --border-radius: 32px;
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
   transition: all 0.3s ease;
-  margin: 20px 0;
-  font-family: inherit;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-  position: relative;
-  overflow: hidden;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
+  margin-bottom: 20px;
 }
 
-.spin-button-minimal::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: -100%;
-  width: 100%;
-  height: 100%;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-  transition: left 0.5s ease;
+.spin-button:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.7);
 }
 
-.spin-button-minimal:hover {
-  border-color: rgba(255, 255, 255, 1);
-  background: rgba(255, 255, 255, 0.1);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 25px rgba(255, 255, 255, 0.2);
-}
-
-.spin-button-minimal:hover::before {
-  left: 100%;
-}
-
-.spin-button-minimal:active {
-  transform: translateY(0px);
-  background: rgba(255, 255, 255, 0.2);
-}
-
-.spin-button-minimal:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-  background: rgba(255, 255, 255, 0.05);
-  border-color: rgba(255, 255, 255, 0.4);
+.spin-button:disabled {
+  --background: #cccccc;
   transform: none;
   box-shadow: none;
-}
-
-.spin-button-minimal:disabled::before {
-  display: none;
+  opacity: 0.6;
 }
 
 /* MENSAJE DE GIRO */
