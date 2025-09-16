@@ -85,22 +85,16 @@
           <div class="game-info">
             <h1>🎰 ¡Gira la Ruleta!</h1>
             <p>Consigue descuentos increíbles en tus bebidas</p>
-            
-            <!-- Premios disponibles -->
-            <div class="available-prizes">
-              <div class="prize-tag" v-for="prize in availablePrizes" :key="prize.id">
-                {{ prize.emoji }} {{ prize.displayText }}
-              </div>
-            </div>
           </div>
           
-          <!-- Botón de jugar -->
+          <!-- Botón de jugar (sin recuadro) -->
           <ion-button
             expand="block"
             size="large"
             @click="spinWheel"
             :disabled="isSpinning"
             class="spin-button"
+            fill="clear"
           >
             <ion-icon :icon="playCircle" slot="start"></ion-icon>
             {{ isSpinning ? 'Girando...' : '¡GIRAR RULETA!' }}
@@ -194,7 +188,6 @@
     </ion-content>
   </ion-page>
 </template>
-
 
 <script setup>
 import { ref, onMounted, onUnmounted, computed, nextTick } from 'vue';
@@ -821,30 +814,52 @@ if (process.env.NODE_ENV === 'development') {
   text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.3);
 }
 
-/* BOTÓN DE GIRAR */
+/* BOTÓN DE GIRAR - SIN RECUADRO VISIBLE */
 .spin-button {
   --background: linear-gradient(45deg, #ff6b6b, #ee5a52);
   --background-hover: linear-gradient(45deg, #ff5252, #e57373);
   --color: white;
+  --border-color: transparent;
+  --border-width: 0;
+  --box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
   font-weight: bold;
   font-size: 20px;
   height: 65px;
   --border-radius: 32px;
-  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5);
   transition: all 0.3s ease;
   margin-bottom: 20px;
 }
 
 .spin-button:hover {
+  --box-shadow: 0 8px 25px rgba(255, 107, 107, 0.7);
   transform: translateY(-3px);
-  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.7);
 }
 
 .spin-button:disabled {
   --background: #cccccc;
+  --box-shadow: none;
   transform: none;
-  box-shadow: none;
   opacity: 0.6;
+}
+
+/* Eliminar cualquier borde o outline del botón */
+.spin-button.button-native {
+  border: none !important;
+  outline: none !important;
+  box-shadow: 0 6px 20px rgba(255, 107, 107, 0.5) !important;
+}
+
+.spin-button.button-native:focus {
+  outline: none !important;
+  border: none !important;
+}
+
+.spin-button.button-native:hover {
+  box-shadow: 0 8px 25px rgba(255, 107, 107, 0.7) !important;
+}
+
+.spin-button.button-native:disabled {
+  box-shadow: none !important;
 }
 
 /* MENSAJE DE GIRO */
