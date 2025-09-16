@@ -38,19 +38,19 @@
             <div class="steps-container">
               <div class="step">
                 <div class="step-number">1</div>
-                <p>Escanea el código QR en tu mesa</p>
+                <p>Escanea el <strong class="highlight">código QR</strong> en tu mesa</p>
               </div>
               <div class="step">
                 <div class="step-number">2</div>
-                <p>Gira la ruleta para ganar descuentos</p>
+                <p>Gira la <strong class="highlight">ruleta</strong> para ganar descuentos</p>
               </div>
               <div class="step">
                 <div class="step-number">3</div>
-                <p>Muestra tu código al camarero</p>
+                <p>Muestra tu <strong class="highlight">código al camarero</strong></p>
               </div>
               <div class="step">
                 <div class="step-number">4</div>
-                <p>¡Disfruta de tu descuento!</p>
+                <p>¡Disfruta de tu <strong class="highlight">descuento</strong>!</p>
               </div>
             </div>
           </div>
@@ -61,16 +61,16 @@
             </div>
             <div class="rules-list">
               <div class="rule-item">
-                <p>Cada dispositivo puede jugar <strong>una vez cada 24 horas</strong></p>
+                <p>Cada dispositivo puede jugar <strong class="highlight-yellow">una vez cada 24 horas</strong></p>
               </div>
               <div class="rule-item">
-                <p>Los códigos son válidos por <strong>2 horas</strong></p>
+                <p>Los códigos son válidos por <strong class="highlight-yellow">2 horas</strong></p>
               </div>
               <div class="rule-item">
-                <p>Los descuentos no son acumulables</p>
+                <p>Los descuentos <strong class="highlight-red">no son acumulables</strong></p>
               </div>
               <div class="rule-item">
-                <p>Válido solo en bebidas del menú básico</p>
+                <p>Válido solo en <strong class="highlight-green">bebidas del menú básico</strong></p>
               </div>
             </div>
           </div>
