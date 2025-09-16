@@ -29,27 +29,6 @@
           </div>
         </div>
 
-        <!-- Features Section -->
-        <div class="features-section">
-          <div class="feature-card">
-            <div class="feature-icon">🎯</div>
-            <h3>Juega</h3>
-            <p>Gira la ruleta y gana descuentos de hasta 25%</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">🎁</div>
-            <h3>Gana</h3>
-            <p>Obtén bebidas gratis y descuentos exclusivos</p>
-          </div>
-          
-          <div class="feature-card">
-            <div class="feature-icon">⚡</div>
-            <h3>Disfruta</h3>
-            <p>Aplica tu descuento al instante en el bar</p>
-          </div>
-        </div>
-
         <!-- Info Cards -->
         <div class="info-section">
           <div class="info-card">
@@ -246,48 +225,6 @@ const goToValidation = () => {
   font-size: 20px;
 }
 
-/* Features Section - IGUAL AL CSS ANTERIOR */
-.features-section {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  gap: 20px;
-  margin-bottom: 40px;
-}
-
-.feature-card {
-  background: rgba(255, 255, 255, 0.15);
-  backdrop-filter: blur(10px);
-  border-radius: 15px;
-  padding: 25px 20px;
-  text-align: center;
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-}
-
-.feature-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.2);
-}
-
-.feature-icon {
-  font-size: 40px;
-  margin-bottom: 15px;
-}
-
-.feature-card h3 {
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
-  margin-bottom: 10px;
-}
-
-.feature-card p {
-  color: rgba(255, 255, 255, 0.9);
-  font-size: 14px;
-  line-height: 1.4;
-  margin: 0;
-}
-
 /* Info Section - MANTENIENDO ESTILO ANTERIOR */
 .info-section {
   margin-bottom: 40px;
@@ -378,10 +315,6 @@ const goToValidation = () => {
 
 /* Responsive design - IGUAL AL ANTERIOR */
 @media (max-width: 768px) {
-  .features-section {
-    grid-template-columns: 1fr;
-  }
-  
   .app-title {
     font-size: 28px;
   }
@@ -403,10 +336,6 @@ const goToValidation = () => {
   .primary-button, .secondary-button {
     height: 55px;
     font-size: 16px;
-  }
-  
-  .feature-card {
-    padding: 20px 15px;
   }
   
   .info-card {
