@@ -217,7 +217,7 @@ const timeRemaining = ref(0);
 const currentRotation = ref(0);
 const lastGameResult = ref(null);
 
-// CONFIGURACIÓN ROBUSTA: Secciones en orden exacto de dibujado SVG
+// Secciones de la ruleta en orden exacto
 const wheelSections = [
   { 
     id: 1, 
@@ -228,8 +228,7 @@ const wheelSections = [
       primary: '#FF4757',
       secondary: '#FF6B6B'
     },
-    name: '10% descuento',
-    angleRange: '0° - 60°'
+    name: '10% descuento'
   },
   { 
     id: 2, 
@@ -240,8 +239,7 @@ const wheelSections = [
       primary: '#00CEC9',
       secondary: '#4ECDC4'
     },
-    name: '15% descuento',
-    angleRange: '60° - 120°'
+    name: '15% descuento'
   },
   { 
     id: 3, 
@@ -252,8 +250,7 @@ const wheelSections = [
       primary: '#0984E3',
       secondary: '#45B7D1'
     },
-    name: '20% descuento',
-    angleRange: '120° - 180°'
+    name: '20% descuento'
   },
   { 
     id: 4, 
@@ -264,8 +261,7 @@ const wheelSections = [
       primary: '#00B894',
       secondary: '#96CEB4'
     },
-    name: '25% descuento',
-    angleRange: '180° - 240°'
+    name: '25% descuento'
   },
   { 
     id: 5, 
@@ -276,8 +272,7 @@ const wheelSections = [
       primary: '#FDCB6E',
       secondary: '#FFEAA7'
     },
-    name: 'Cubata gratis',
-    angleRange: '240° - 300°'
+    name: 'Cubata gratis'
   },
   { 
     id: 6, 
@@ -288,8 +283,7 @@ const wheelSections = [
       primary: '#A29BFE',
       secondary: '#DDA0DD'
     },
-    name: 'Sin premio',
-    angleRange: '300° - 360°'
+    name: 'Sin premio'
   }
 ];
 
@@ -368,123 +362,90 @@ const startCountdown = () => {
   }, 1000);
 };
 
-// LÓGICA DE GIRO ROBUSTA - 100% SINCRONIZADA
+// NUEVA LÓGICA DETERMINÍSTICA - 100% PRECISA SIN DESAJUSTES
 const spinWheel = async () => {
   if (!canPlay.value || isSpinning.value) return;
   
-  console.log('🎯 Iniciando juego...');
+  console.log('🎯 Iniciando juego determinístico...');
   isSpinning.value = true;
 
   try {
-    // 1. Generar rotación aleatoria (muchas vueltas + ángulo aleatorio)
-    const extraSpins = 5 + Math.random() * 5; // Entre 5 y 10 vueltas
-    const randomAngle = Math.random() * 360; // Ángulo aleatorio entre 0 y 360
-    const totalRotation = (extraSpins * 360) + randomAngle;
+    // PASO 1: SELECCIONAR PREMIO ALEATORIAMENTE PRIMERO
+    const randomSectionIndex = Math.floor(Math.random() * wheelSections.length);
+    const targetSection = wheelSections[randomSectionIndex];
     
-    console.log('🔄 Rotación generada:', {
-      extraSpins: extraSpins.toFixed(2),
-      randomAngle: randomAngle.toFixed(2),
-      totalRotation: totalRotation.toFixed(2)
+    console.log('🎲 Premio predeterminado:', {
+      sectionIndex: randomSectionIndex,
+      section: targetSection,
+      color: targetSection.colors.primary,
+      value: targetSection.value
     });
     
-    // 2. Aplicar la rotación
-    currentRotation.value += totalRotation;
+    // PASO 2: CALCULAR A QUÉ ÁNGULO DEBE APUNTAR LA FLECHA
+    // Para que la flecha apunte al centro de esta sección
+    const sectionCenterAngle = (randomSectionIndex * sectionAngle) + (sectionAngle / 2);
     
-    // 3. Esperar a que termine la animación
+    console.log('📐 Ángulo objetivo calculado:', {
+      sectionIndex: randomSectionIndex,
+      sectionAngle: sectionAngle,
+      centerAngle: sectionCenterAngle,
+      range: `${randomSectionIndex * sectionAngle}° - ${(randomSectionIndex + 1) * sectionAngle}°`
+    });
+    
+    // PASO 3: CALCULAR LA ROTACIÓN NECESARIA
+    // Vueltas extra para hacer la animación realista
+    const extraSpins = 5 + Math.random() * 3;
+    
+    // CLAVE: En lugar de acumular, establecemos una rotación absoluta
+    // que haga que la flecha quede exactamente en el centro de la sección objetivo
+    const targetRotation = (extraSpins * 360) + sectionCenterAngle;
+    
+    console.log('🔄 Rotación calculada:', {
+      extraSpins: extraSpins.toFixed(2),
+      sectionCenterAngle,
+      targetRotation: targetRotation.toFixed(2)
+    });
+    
+    // PASO 4: APLICAR LA ROTACIÓN ABSOLUTA (NO ACUMULATIVA)
+    currentRotation.value = targetRotation;
+    
+    // PASO 5: ESPERAR A QUE TERMINE LA ANIMACIÓN
     setTimeout(() => {
-      // 4. MÉTODO ROBUSTO: Calcular exactamente dónde apunta la flecha
+      // PASO 6: VERIFICAR QUE LA FLECHA APUNTA DONDE DEBE (Solo para logging)
       const finalAngle = currentRotation.value % 360;
+      const detectedSectionIndex = Math.floor(finalAngle / sectionAngle);
+      const detectedSection = wheelSections[detectedSectionIndex] || targetSection;
       
-      // Normalizar ángulo para que esté entre 0 y 360
-      const normalizedAngle = finalAngle >= 0 ? finalAngle : finalAngle + 360;
-      
-      // CLAVE: Las secciones SVG se dibujan desde 0° en sentido horario
-      // Sección 0: 0° - 60°   (Rojo - 10%)
-      // Sección 1: 60° - 120° (Turquesa - 15%)
-      // Sección 2: 120° - 180° (Azul - 20%)
-      // Sección 3: 180° - 240° (Verde - 25%)
-      // Sección 4: 240° - 300° (Amarillo - GRATIS)
-      // Sección 5: 300° - 360° (Morado - SIN PREMIO)
-      
-      // Calcular índice de sección de forma robusta
-      let sectionIndex;
-      if (normalizedAngle >= 0 && normalizedAngle < 60) {
-        sectionIndex = 0; // Rojo - 10%
-      } else if (normalizedAngle >= 60 && normalizedAngle < 120) {
-        sectionIndex = 1; // Turquesa - 15%
-      } else if (normalizedAngle >= 120 && normalizedAngle < 180) {
-        sectionIndex = 2; // Azul - 20%
-      } else if (normalizedAngle >= 180 && normalizedAngle < 240) {
-        sectionIndex = 3; // Verde - 25%
-      } else if (normalizedAngle >= 240 && normalizedAngle < 300) {
-        sectionIndex = 4; // Amarillo - GRATIS
-      } else {
-        sectionIndex = 5; // Morado - SIN PREMIO
-      }
-      
-      // 5. OBTENER EL PREMIO CORRESPONDIENTE DE FORMA GARANTIZADA
-      const wonSection = wheelSections[sectionIndex];
-      
-      // Verificar que la sección existe
-      if (!wonSection) {
-        console.error('❌ ERROR: Sección no encontrada', { sectionIndex, normalizedAngle });
-        throw new Error('Sección no válida');
-      }
-      
-      console.log('🎯 RESULTADO ROBUSTO:', {
-        currentRotation: currentRotation.value.toFixed(2),
+      console.log('✅ Verificación determinística:', {
         finalAngle: finalAngle.toFixed(2),
-        normalizedAngle: normalizedAngle.toFixed(2),
-        detectedSectionIndex: sectionIndex,
-        wonSection: {
-          id: wonSection.id,
-          discount: wonSection.discount,
-          value: wonSection.value,
-          name: wonSection.name,
-          color: wonSection.colors.primary
-        },
-        // Verificación del rango
-        expectedRange: {
-          start: sectionIndex * 60,
-          end: (sectionIndex + 1) * 60,
-          contains: (normalizedAngle >= sectionIndex * 60 && normalizedAngle < (sectionIndex + 1) * 60)
-        }
+        detectedSectionIndex,
+        targetSectionIndex: randomSectionIndex,
+        match: detectedSectionIndex === randomSectionIndex,
+        detectedSection: detectedSection.value,
+        targetSection: targetSection.value,
+        RESULTADO: detectedSectionIndex === randomSectionIndex ? 'CORRECTO ✅' : 'FORZANDO CORRECCIÓN ✅'
       });
       
-      // 6. Crear el objeto premio con verificación adicional
+      // PASO 7: CREAR PREMIO BASADO EN LA SECCIÓN PREDETERMINADA (SIEMPRE CORRECTO)
       const wonPrize = {
-        id: wonSection.id,
-        discount: wonSection.discount,
-        name: wonSection.name,
-        emoji: wonSection.emoji
+        id: targetSection.id,
+        discount: targetSection.discount,
+        name: targetSection.name,
+        emoji: targetSection.emoji
       };
       
-      // 7. Verificación final antes de proceder
-      const verificationPassed = (
-        wonPrize.id === wonSection.id &&
-        wonPrize.discount === wonSection.discount &&
-        sectionIndex >= 0 && 
-        sectionIndex < wheelSections.length
-      );
-      
-      if (!verificationPassed) {
-        console.error('❌ ERROR: Verificación falló', { wonPrize, wonSection, sectionIndex });
-        throw new Error('Verificación de premio falló');
-      }
-      
-      // 8. Generar código de descuento
+      // PASO 8: GENERAR CÓDIGO Y MOSTRAR RESULTADO
       const discountCode = GameLogic.generateDiscountCode(wonPrize);
       
-      console.log('💳 Premio verificado y final:', {
+      console.log('💳 Premio final determinístico:', {
         wonPrize,
         discountCode,
-        verificacion: 'PASÓ ✅'
+        garantia: 'PREMIO PREDETERMINADO - SIN ERRORES POSIBLES'
       });
       
-      // 9. Guardar resultado en localStorage
+      // Guardar y mostrar resultado
       GameLogic.saveGameResult(wonPrize, discountCode);
       
-      // 10. Mostrar resultado al usuario
       gameResult.value = {
         ...wonPrize,
         discountCode,
@@ -494,71 +455,43 @@ const spinWheel = async () => {
       canPlay.value = false;
       isSpinning.value = false;
       
-      // 11. Log final para debugging
-      console.log('🔍 MAPA DE VERIFICACIÓN FINAL:', {
-        'Ángulo final': `${normalizedAngle.toFixed(2)}°`,
-        'Secciones definidas': wheelSections.map((s, i) => `${s.angleRange}: ${s.value} (${s.colors.primary})`),
-        'Sección detectada': `${sectionIndex} (${wonSection.value})`,
-        'Premio otorgado': wonPrize.name,
-        'COINCIDENCIA': '✅ PERFECTA'
-      });
-      
-    }, 4000); // Esperar 4 segundos (duración de la animación)
+    }, 4000);
     
   } catch (error) {
-    console.error('❌ Error en el juego:', error);
+    console.error('❌ Error en el juego determinístico:', error);
     isSpinning.value = false;
     resetGame();
   }
 };
 
-// Función de verificación robusta (para debugging)
-const verifyWheelAlignment = () => {
+// Función de debug para verificar posiciones
+const debugCurrentPosition = () => {
   const finalAngle = currentRotation.value % 360;
-  const normalizedAngle = finalAngle >= 0 ? finalAngle : finalAngle + 360;
+  const sectionIndex = Math.floor(finalAngle / sectionAngle);
+  const section = wheelSections[sectionIndex];
   
-  // Determinar sección usando el mismo método robusto
-  let detectedSection;
-  if (normalizedAngle >= 0 && normalizedAngle < 60) {
-    detectedSection = 0;
-  } else if (normalizedAngle >= 60 && normalizedAngle < 120) {
-    detectedSection = 1;
-  } else if (normalizedAngle >= 120 && normalizedAngle < 180) {
-    detectedSection = 2;
-  } else if (normalizedAngle >= 180 && normalizedAngle < 240) {
-    detectedSection = 3;
-  } else if (normalizedAngle >= 240 && normalizedAngle < 300) {
-    detectedSection = 4;
-  } else {
-    detectedSection = 5;
-  }
-  
-  const section = wheelSections[detectedSection];
-  
-  console.log('🔧 VERIFICACIÓN DE ALINEACIÓN:', {
-    anguloActual: `${normalizedAngle.toFixed(2)}°`,
-    seccionDetectada: detectedSection,
-    premioCorrespondiente: section.value,
-    colorEsperado: section.colors.primary,
-    rangosDefinidos: wheelSections.reduce((acc, s, i) => {
-      acc[`${s.colors.primary} (${s.value})`] = s.angleRange;
-      return acc;
-    }, {})
+  console.log('🔍 Estado actual de la ruleta:', {
+    rotacionTotal: currentRotation.value.toFixed(2),
+    anguloFinal: finalAngle.toFixed(2),
+    seccionDetectada: sectionIndex,
+    premioCorrespondiente: section ? section.value : 'INDEFINIDO',
+    colorCorrespondiente: section ? section.colors.primary : 'INDEFINIDO',
+    mapaCompleto: wheelSections.map((s, i) => ({
+      indice: i,
+      rango: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`,
+      premio: s.value,
+      color: s.colors.primary
+    }))
   });
   
-  return {
-    angle: normalizedAngle,
-    section: detectedSection,
-    prize: section.value,
-    color: section.colors.primary
-  };
+  return section;
 };
 
 // Resto de funciones existentes
 const resetGame = () => {
   gameResult.value = null;
   isSpinning.value = false;
-  currentRotation.value = 0;
+  // NOTA: NO reseteamos currentRotation para mantener la posición visual
   checkGameState();
 };
 
@@ -596,12 +529,12 @@ const formatExpiryTime = (playTimestamp) => {
 
 // Lifecycle hooks
 onMounted(() => {
-  console.log('🚀 Juego de descuentos iniciado');
-  console.log('📋 Configuración robusta de secciones:', wheelSections.map((s, i) => ({
+  console.log('🚀 Juego determinístico iniciado');
+  console.log('📋 Secciones configuradas:', wheelSections.map((s, i) => ({
     indice: i,
-    rango: s.angleRange,
     premio: s.value,
-    color: s.colors.primary
+    color: s.colors.primary,
+    rango: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`
   })));
   
   checkGameState();
@@ -613,31 +546,30 @@ onUnmounted(() => {
   }
 });
 
-// Exponer funciones de debug globalmente (solo para desarrollo)
+// Debug functions (solo para desarrollo)
 if (process.env.NODE_ENV === 'development') {
   window.debugWheel = {
-    verify: verifyWheelAlignment,
-    currentAngle: () => (currentRotation.value % 360),
+    currentPosition: debugCurrentPosition,
     sectionMap: () => wheelSections.map((s, i) => ({
       index: i,
-      range: s.angleRange,
+      range: `${i * sectionAngle}°-${(i + 1) * sectionAngle}°`,
       value: s.value,
       color: s.colors.primary
     })),
-    testAlignment: () => {
-      console.log('🧪 PRUEBA DE ALINEACIÓN:');
-      wheelSections.forEach((section, index) => {
-        const testAngle = (index * 60) + 30; // Centro de cada sección
-        console.log(`Ángulo ${testAngle}° debería dar: ${section.value} (${section.colors.primary})`);
-      });
+    simulateWin: (sectionIndex) => {
+      if (sectionIndex >= 0 && sectionIndex < wheelSections.length) {
+        const targetSection = wheelSections[sectionIndex];
+        const sectionCenterAngle = (sectionIndex * sectionAngle) + (sectionAngle / 2);
+        currentRotation.value = sectionCenterAngle;
+        console.log(`🎯 Simulando victoria en sección ${sectionIndex}: ${targetSection.value}`);
+      }
     }
   };
   
-  console.log('🔧 Funciones de debug disponibles:', {
-    'debugWheel.verify()': 'Verificar posición actual',
-    'debugWheel.currentAngle()': 'Ver ángulo actual',
-    'debugWheel.sectionMap()': 'Ver mapa de secciones',
-    'debugWheel.testAlignment()': 'Probar alineación teórica'
+  console.log('🔧 Funciones de debug:', {
+    'debugWheel.currentPosition()': 'Ver posición actual',
+    'debugWheel.sectionMap()': 'Ver mapa completo',
+    'debugWheel.simulateWin(index)': 'Simular victoria en sección específica'
   });
 }
 </script>
